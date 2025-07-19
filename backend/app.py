@@ -1,4 +1,5 @@
 from flask import Flask, send_from_directory
+from routes.tasks import tasks_bp
 import os
 
 # build した React 静的ファイルを置くディレクトリを指定
@@ -23,6 +24,9 @@ def serve_app(path):
         return send_from_directory(app.static_folder, path)
     # それ以外はシングルページアプリのエントリへ
     return send_from_directory(app.static_folder, 'index.html')
+
+# Blueprint を登録
+app.register_blueprint(tasks_bp)
 
 if __name__ == '__main__':
     # 開発時は以下、運用時は gunicorn 等をご検討ください
