@@ -58,7 +58,7 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '40px auto' }}>
-      {/* 週表示と日表示のセル高さ調整用CSS */}
+      {/* 週／日ビューでセル高さ調整 & 土日着色 */}
       <style>{`
         /* 週表示、日表示、カスタム7日表示のセル高さを調整 */
         .fc-dayGridWeek-view .fc-daygrid-day-frame,
@@ -77,6 +77,25 @@ export default function App() {
         /* 月表示は元のサイズを維持 */
         .fc-dayGridMonth-view .fc-daygrid-day-frame {
           min-height: auto !important;
+          background-color: transparent !important;
+        }
+        /* --------------------------------------------
+          ここから追加：曜日ヘッダーと日付のみ色変更
+          -------------------------------------------- */
+        /* カラムヘッダー（土曜／日曜） */
+        .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion {
+          color: #007bff !important; /* お好きな青色に */
+        }
+        .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+          color: #dc3545 !important; /* お好きな赤色に */
+        }
+
+        /* 各セルの日付数字 */
+        .fc-daygrid-day.fc-day-sat .fc-daygrid-day-top .fc-daygrid-day-number {
+          color: #007bff !important;
+        }
+        .fc-daygrid-day.fc-day-sun .fc-daygrid-day-top .fc-daygrid-day-number {
+          color: #dc3545 !important;
         }
       `}</style>
       <h1 style={{ textAlign: 'center' }}>タスクカレンダーv0.1</h1>
