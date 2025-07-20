@@ -58,6 +58,27 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '40px auto' }}>
+      {/* 週表示と日表示のセル高さ調整用CSS */}
+      <style>{`
+        /* 週表示、日表示、カスタム7日表示のセル高さを調整 */
+        .fc-dayGridWeek-view .fc-daygrid-day-frame,
+        .fc-dayGridDay-view .fc-daygrid-day-frame,
+        .fc-weekCentered-view .fc-daygrid-day-frame {
+          min-height: 250px !important;
+        }
+
+        /* イベントエリアの高さも調整 */
+        .fc-dayGridWeek-view .fc-daygrid-day-events,
+        .fc-dayGridDay-view .fc-daygrid-day-events,
+        .fc-weekCentered-view .fc-daygrid-day-events {
+          min-height: 200px !important;
+        }
+
+        /* 月表示は元のサイズを維持 */
+        .fc-dayGridMonth-view .fc-daygrid-day-frame {
+          min-height: auto !important;
+        }
+      `}</style>
       <h1 style={{ textAlign: 'center' }}>タスクカレンダーv0.1</h1>
 
       {/* クリックした日付にだけ表示される追加フォーム */}
