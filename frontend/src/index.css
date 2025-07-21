@@ -12,28 +12,41 @@ code {
     monospace;
 }
 
+/****************************
+ * チェックボックスのスタイル
+ ****************************/
+
+/* 四角いボックス全体 */
 .habit-box {
-  display: inline-block;       /* ボックスの大きさを中身に合わせる */
-  border: 1px solid #666;      /* 四角い枠 */
-  border-radius: 4px;          /* 角を少し丸く */
-  padding: 4px;                /* 内側に余白 */
-  cursor: pointer;             /* クリック可能と分かるように */
+  display: inline-flex;           /* inline-block → inline-flex */
+  align-items: center;            /* 中央揃え */
+  background-color: #e8f5e9;      /* 薄い緑背景 */
+  border: 1px solid #4caf50;      /* 緑の枠線 */
+  border-radius: 4px;
+  padding: 4px 6px;               /* 縦横に余白を入れる */
+  cursor: pointer;
 }
 
+/* ○を並べるコンテナ */
 .habit-circles {
   display: flex;
   gap: 4px;
-  margin-top: 4px;
 }
+
+/* ○のベース（未チェック） */
 .circle {
   width: 12px;
   height: 12px;
-  border: 1px solid #666;
+  min-width: 12px;                /* 干渉を防ぐ */
+  min-height: 12px;
+  border: 1px solid #4caf50;      /* 緑の枠線 */
   border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
+  background-color: #ffffff;      /* 白 */
+  transition: background-color 0.2s ease;
 }
-/* 押されたら中を黒く */
+
+/* ○がチェックされたとき */
 .circle.filled {
-  background: #333;
+  background-color: #388e3c;      /* 濃い緑 */
 }
+
