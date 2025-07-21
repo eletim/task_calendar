@@ -3,20 +3,26 @@ import React, { useEffect, useState, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import './index.css';
 
 export default function App() {
   const [events, setEvents]             = useState([]);
+  const [routines,setRoutines]          = useState({}); // { dateStr: [bool,bool,bool], ... }
   const [selectedDate, setSelectedDate] = useState(null);
   const [newTitle, setNewTitle]         = useState('');
   const calendarRef                     = useRef(null);
 
   // 初期データ取得
   useEffect(() => {
-    fetch('/api/tasks')
-      .then(res => res.json())
-      .then(data => setEvents(data));
+    fetch('/api/tasks').then(r=>r.json()).then(setEvents);
+    fetch('/api/routines').then(r=>r.json()).then(setRoutines);
   }, []);
 
+
+  ///////////////////////
+  // 日付クリック時の処理 //
+  ///////////////////////
+  
   // 日付クリック時のハンドラ
   const handleDateClick = (arg) => {
     const calendarApi = calendarRef.current.getApi();
@@ -54,6 +60,70 @@ export default function App() {
   // フォームを閉じる
   const handleCancel = () => {
     setSelectedDate(null);
+  };
+
+
+  ///////////////////////////
+  // ルーチン○クリック時の処理 //
+  ///////////////////////////
+
+  // 次に埋めるインデックスを計算して toggleCircle を呼び出す
+  const handleBoxClick = (dateStr) => {
+    const arr = routines[dateStr] || [false, false, false];
+    const filledCount = arr.filter(v => v).length;  // 現在埋まっている数
+    if (filledCount < arr.length) {
+      // 次の丸を埋める
+      toggleCircle(dateStr, filledCount);
+    } else {
+      // すべて埋まっている → idx=-1 でリセット
+      toggleCircle(dateStr, -1);
+    }
+  };
+
+  // ルーチン○をクリックしたとき
+  const toggleCircle = (dateStr, idx) => {
+    fetch('/api/routines', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ date:dateStr, index:idx })
+    })
+    .then(r=>r.json())
+    .then(res => {
+      setRoutines(prev => ({
+        ...prev,
+        [res.date]: res.state
+      }));
+    });
+  };
+
+  // 日セルをカスタム描画
+  const renderDayCell = (arg) => {
+    const dateStr = arg.date.toISOString().slice(0,10);
+    const arr = routines[dateStr] || [false,false,false];
+    return (
+      <div className="fc-daygrid-day-frame">
+        <div className="fc-daygrid-day-top">
+          <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>
+        </div>
+        {/* 四角いボックスをクリックすると左から順に埋まる */}
+        <div
+          className="habit-box"
+          onClick={e => {
+            e.stopPropagation();
+            handleBoxClick(dateStr);
+          }}
+        >
+          <div className="habit-circles">
+            {arr.map((on, i) => (
+              <span
+                key={i}
+                className={on ? 'circle filled' : 'circle'}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -133,16 +203,17 @@ export default function App() {
           right: 'dayGridMonth,dayGridWeek,dayGridDay'
         }}
         // カスタムウィークビュー定義
-      views={{
-        weekCentered: {
-          type: 'dayGrid',
-          // 期間だけ duration で指定
-          duration: { days: 7 },
-          buttonText: '７日表示'
-        }
-      }}
+        views={{
+          weekCentered: {
+            type: 'dayGrid',
+            // 期間だけ duration で指定
+            duration: { days: 7 },
+            buttonText: '７日表示'
+          }
+        }}
         events={events}
         dateClick={handleDateClick}
+        dayCellContent={renderDayCell}
         height="auto"
       />
     </div>

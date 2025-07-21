@@ -11,3 +11,29 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.habit-box {
+  display: inline-block;       /* ボックスの大きさを中身に合わせる */
+  border: 1px solid #666;      /* 四角い枠 */
+  border-radius: 4px;          /* 角を少し丸く */
+  padding: 4px;                /* 内側に余白 */
+  cursor: pointer;             /* クリック可能と分かるように */
+}
+
+.habit-circles {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.circle {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #666;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+/* 押されたら中を黒く */
+.circle.filled {
+  background: #333;
+}
