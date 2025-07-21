@@ -10,6 +10,8 @@ export default function App() {
   const [routines,setRoutines]          = useState({}); // { dateStr: [bool,bool,bool], ... }
   const [selectedDate, setSelectedDate] = useState(null);
   const [newTitle, setNewTitle]         = useState('');
+  const [editingEvent, setEditingEvent]   = useState(null);
+  const [editingTitle, setEditingTitle]   = useState('');
   const calendarRef                     = useRef(null);
 
   // 初期データ取得
@@ -126,6 +128,58 @@ export default function App() {
     );
   };
 
+
+  ////////////////////////
+  // イベント編集・削除処理 //
+  ////////////////////////
+
+  // イベントをクリックしたときのハンドラ
+  const handleEventClick = (clickInfo) => {
+    const ev = clickInfo.event;
+    setEditingEvent({
+      id: ev.id,
+      title: ev.title,
+      date: ev.startStr
+    });
+    setEditingTitle(ev.title);
+  };
+
+  // 編集フォームのキャンセル
+  const handleCancelEdit = () => {
+    setEditingEvent(null);
+    setEditingTitle('');
+  };
+
+  // タイトル更新
+  const handleUpdateEvent = (e) => {
+    e.preventDefault();
+    fetch(`/api/tasks/${editingEvent.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editingTitle })
+    })
+    .then(r => r.json())
+    .then(updated => {
+      setEvents(evt =>
+        evt.map(ev => ev.id === updated.id ? updated : ev)
+      );
+      handleCancelEdit();
+    });
+  };
+
+  // イベント削除
+  const handleDeleteEvent = () => {
+    fetch(`/api/tasks/${editingEvent.id}`, {
+      method: 'DELETE'
+    })
+    .then(() => {
+      setEvents(evt =>
+        evt.filter(ev => ev.id !== editingEvent.id)
+      );
+      handleCancelEdit();
+    });
+  };
+
   return (
     <div style={{ maxWidth: '800px', margin: '40px auto' }}>
       {/* 週／日ビューでセル高さ調整 & 土日着色 */}
@@ -170,6 +224,30 @@ export default function App() {
       `}</style>
       <h1 style={{ textAlign: 'center' }}>タスクカレンダーv0.1</h1>
 
+      {/* ─── 編集フォーム ───────────────────── */}
+      {editingEvent && (
+        <div style={{
+          padding: '10px',
+          marginBottom: '20px',
+          border: '1px solid #f00',
+          borderRadius: '4px',
+          background: '#fff0f0'
+        }}>
+          <form onSubmit={handleUpdateEvent} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span>{editingEvent.date}</span>
+            <input
+              type="text"
+              value={editingTitle}
+              onChange={e => setEditingTitle(e.target.value)}
+              required
+            />
+            <button type="submit">更新</button>
+            <button type="button" onClick={handleDeleteEvent}>削除</button>
+            <button type="button" onClick={handleCancelEdit}>キャンセル</button>
+          </form>
+        </div>
+      )}
+
       {/* クリックした日付にだけ表示される追加フォーム */}
       {selectedDate && (
         <div style={{
@@ -197,6 +275,7 @@ export default function App() {
         ref={calendarRef}
         plugins={[ dayGridPlugin, interactionPlugin ]}
         initialView="dayGridMonth"
+        eventClick={handleEventClick}
         headerToolbar={{
           left: 'prev,next today',
           center: 'title',
