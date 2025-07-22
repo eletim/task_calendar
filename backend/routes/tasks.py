@@ -78,3 +78,12 @@ def delete_task(task_id):
     save_tasks(new_tasks)
     return '', 204
 
+@tasks_bp.route('/api/tasks/<int:task_id>/toggle', methods=['PATCH'])
+def toggle_task(task_id):
+    tasks = load_tasks()                 # 既存の読み込み関数想定
+    for t in tasks:
+        if t.get('id') == task_id:
+            t['done'] = not t.get('done', False)
+            save_tasks(tasks)            # 既存の保存関数想定
+            return jsonify(t)
+    return jsonify({'error': 'not found'}), 404

@@ -16,8 +16,18 @@ export default function App() {
 
   // 初期データ取得
   useEffect(() => {
-    fetch('/api/tasks').then(r=>r.json()).then(setEvents);
-    fetch('/api/routines').then(r=>r.json()).then(setRoutines);
+    fetch('/api/tasks')
+      .then(res => res.json())
+      .then(data => {
+        const fcEvents = data.map(t => ({
+          id: t.id,
+          title: t.title,
+          start: t.date,
+          done: t.done,
+        }));
+        setEvents(fcEvents);
+      });
+    fetch('/api/routines').then(r => r.json()).then(setRoutines);
   }, []);
 
 
@@ -180,6 +190,44 @@ export default function App() {
     });
   };
 
+
+  //////////////////////////
+  // イベント描画カスタマイズ //
+  //////////////////////////
+
+  // イベント描画カスタマイズ
+  const renderEventContent = (arg) => {
+    const id   = arg.event.id;  
+    const done = arg.event.extendedProps.done;
+    return (
+      <div className="task-item" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <input
+          type="checkbox"
+          checked={!!done}
+          onChange={(e) => {
+            e.stopPropagation();
+            toggleTaskDone(id);
+          }}
+        />
+        <span style={{ textDecoration: done ? 'line-through' : 'none' }}>
+          {arg.event.title}
+        </span>
+      </div>
+    );
+  };
+
+  // チェック切り替え処理
+  const toggleTaskDone = (taskId) => {
+    fetch(`/api/tasks/${taskId}/toggle`, { method: 'PATCH' })
+      .then(r => r.json())
+      .then(updated => {
+        // state の events を差し替え
+        setEvents(prev =>
+          prev.map(ev => ev.id === updated.id ? { ...ev, done: updated.done } : ev)
+        );
+      });
+  };
+
   return (
     <div style={{ maxWidth: '800px', margin: '40px auto' }}>
       {/* 週／日ビューでセル高さ調整 & 土日着色 */}
@@ -291,6 +339,7 @@ export default function App() {
           }
         }}
         events={events}
+        eventContent={renderEventContent}
         dateClick={handleDateClick}
         dayCellContent={renderDayCell}
         height="auto"
