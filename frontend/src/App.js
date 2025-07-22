@@ -117,6 +117,18 @@ export default function App() {
         <div className="fc-daygrid-day-top">
           <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>
         </div>
+      {/* ←ここを追加：数値入力 + 円 */}
+      <div className="habit-row" onClick={(e)=>e.stopPropagation()}>
+        {/* 暫定で固定50表示、送信処理なし */}
+        <input
+          className="habit-input"
+          type="number"
+          min={0}
+          max={100}
+          value={50}
+          readOnly
+          onClick={(e)=>e.stopPropagation()}
+        />
         {/* 四角いボックスをクリックすると左から順に埋まる */}
         <div
           className="habit-box"
@@ -134,6 +146,7 @@ export default function App() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     );
   };

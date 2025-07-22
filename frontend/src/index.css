@@ -50,6 +50,23 @@ code {
   background-color: #388e3c;      /* 濃い緑 */
 }
 
+/* 1行に並べるラッパー */
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* 数値入力欄 */
+.habit-input {
+  width: 38px;
+  font-size: 0.65rem;
+  padding: 0 2px;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
 /*************************
  * Taskチェックボックスのスタイル *
  *************************/

@@ -13,3 +13,8 @@ npm run build
 cd backend
 python3 app.py
 ```
+
+# TODO
+
+- if then ルール
+- 
