@@ -8,6 +8,7 @@ import './index.css';
 export default function App() {
   const [events, setEvents]             = useState([]);
   const [routines,setRoutines]          = useState({}); // { dateStr: [bool,bool,bool], ... }
+  const [routineNums, setRoutineNums]   = useState({}); // { '2025-07-22': 50, ... }
   const [selectedDate, setSelectedDate] = useState(null);
   const [newTitle, setNewTitle]         = useState('');
   const [editingEvent, setEditingEvent]   = useState(null);
@@ -112,6 +113,8 @@ export default function App() {
   const renderDayCell = (arg) => {
     const dateStr = arg.date.toISOString().slice(0,10);
     const arr = routines[dateStr] || [false,false,false];
+    const val = routineNums[dateStr] ?? 50;
+
     return (
       <div className="fc-daygrid-day-frame">
         <div className="fc-daygrid-day-top">
@@ -125,8 +128,13 @@ export default function App() {
           type="number"
           min={0}
           max={100}
-          value={50}
-          readOnly
+          value={val}
+          onMouseDown={(e)=> e.stopPropagation()}
+          onChange={(e)=>{
+            const v = e.target.value === '' ? '' : Math.min(100, Math.max(0, Number(e.target.value)));
+            setRoutineNums(prev => ({ ...prev, [dateStr]: v }));
+            console.log('value changed', dateStr, v);
+          }}
           onClick={(e)=>e.stopPropagation()}
         />
         {/* 四角いボックスをクリックすると左から順に埋まる */}
