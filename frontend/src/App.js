@@ -30,6 +30,24 @@ export default function App() {
     fetch('/api/routines').then(r => r.json()).then(setRoutines);
   }, []);
 
+// 日付をローカルで YYYY-MM-DD に
+const toYmd = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+// デバッグ出力用
+const debugDate = (label, argDateObj, argDateStr) => {
+  console.log(label, {
+    argDateStr,                           // FullCalendarが渡す文字列
+    iso: argDateObj.toISOString(),        // UTC基準
+    localYmd: toYmd(argDateObj),          // ローカル基準
+    tzOffsetMin: argDateObj.getTimezoneOffset(), // 分
+    argDateObj
+  });
+};
 
   ///////////////////////
   // 日付クリック時の処理 //
@@ -81,6 +99,7 @@ export default function App() {
 
   // 次に埋めるインデックスを計算して toggleCircle を呼び出す
   const handleBoxClick = (dateStr) => {
+    console.log('handleBoxClick', { dateStr, rec: routines[dateStr] });
     const rec = routines[dateStr] || { flags:[false,false,false], value:0 };
     const arr = rec.flags;
     const filledCount = arr.filter(v => v).length;
@@ -126,8 +145,8 @@ export default function App() {
 
   // 日セルをカスタム描画
   const renderDayCell = (arg) => {
-    const dateStr = arg.date.toISOString().slice(0,10);
-    const rec = routines[dateStr] || { flags:[false,false,false], value:50 };
+    const dateStr = toYmd(arg.date);
+    const rec = routines[dateStr] || { flags:[false,false,false], value:0 };
     const arr = rec.flags;
     const val = rec.value;
 
