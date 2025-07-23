@@ -30,24 +30,13 @@ export default function App() {
     fetch('/api/routines').then(r => r.json()).then(setRoutines);
   }, []);
 
-// 日付をローカルで YYYY-MM-DD に
-const toYmd = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
-// デバッグ出力用
-const debugDate = (label, argDateObj, argDateStr) => {
-  console.log(label, {
-    argDateStr,                           // FullCalendarが渡す文字列
-    iso: argDateObj.toISOString(),        // UTC基準
-    localYmd: toYmd(argDateObj),          // ローカル基準
-    tzOffsetMin: argDateObj.getTimezoneOffset(), // 分
-    argDateObj
-  });
-};
+  // 日付をローカルで YYYY-MM-DD に
+  const toYmd = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   ///////////////////////
   // 日付クリック時の処理 //
@@ -65,7 +54,7 @@ const debugDate = (label, argDateObj, argDateStr) => {
       calendarApi.changeView('weekCentered', startDate);
     }
     // 追加フォーム用に日付だけセット
-    setSelectedDate(arg.dateStr);
+    setSelectedDate(toYmd(arg.date));
     setNewTitle('');
   };
 
@@ -99,7 +88,6 @@ const debugDate = (label, argDateObj, argDateStr) => {
 
   // 次に埋めるインデックスを計算して toggleCircle を呼び出す
   const handleBoxClick = (dateStr) => {
-    console.log('handleBoxClick', { dateStr, rec: routines[dateStr] });
     const rec = routines[dateStr] || { flags:[false,false,false], value:0 };
     const arr = rec.flags;
     const filledCount = arr.filter(v => v).length;
@@ -385,6 +373,7 @@ const debugDate = (label, argDateObj, argDateStr) => {
       <FullCalendar
         ref={calendarRef}
         plugins={[ dayGridPlugin, interactionPlugin ]}
+        timeZone="local"
         initialView="dayGridMonth"
         eventClick={handleEventClick}
         headerToolbar={{
