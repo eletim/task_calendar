@@ -7,8 +7,7 @@ import './index.css';
 
 export default function App() {
   const [events, setEvents]             = useState([]);
-  const [routines,setRoutines]          = useState({}); // { dateStr: [bool,bool,bool], ... }
-  const [routineNums, setRoutineNums]   = useState({}); // { '2025-07-22': 50, ... }
+  const [routines,setRoutines]          = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
   const [selectedDate, setSelectedDate] = useState(null);
   const [newTitle, setNewTitle]         = useState('');
   const [editingEvent, setEditingEvent]   = useState(null);
@@ -82,8 +81,9 @@ export default function App() {
 
   // 次に埋めるインデックスを計算して toggleCircle を呼び出す
   const handleBoxClick = (dateStr) => {
-    const arr = routines[dateStr] || [false, false, false];
-    const filledCount = arr.filter(v => v).length;  // 現在埋まっている数
+    const rec = routines[dateStr] || { flags:[false,false,false], value:0 };
+    const arr = rec.flags;
+    const filledCount = arr.filter(v => v).length;
     if (filledCount < arr.length) {
       // 次の丸を埋める
       toggleCircle(dateStr, filledCount);
@@ -95,7 +95,7 @@ export default function App() {
 
   // ルーチン○をクリックしたとき
   const toggleCircle = (dateStr, idx) => {
-    fetch('/api/routines', {
+    fetch('/api/routines/flags', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ date:dateStr, index:idx })
@@ -104,7 +104,22 @@ export default function App() {
     .then(res => {
       setRoutines(prev => ({
         ...prev,
-        [res.date]: res.state
+        [res.date]: { flags: res.state, value: res.value }
+      }));
+    });
+  };
+
+  const postValue = (dateStr, value) => {
+    fetch('/api/routines/value', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ date: dateStr, value })
+    })
+    .then(r=>r.json())
+    .then(res=>{
+      setRoutines(prev => ({
+        ...prev,
+        [res.date]: { flags: res.state, value: res.value }
       }));
     });
   };
@@ -112,8 +127,9 @@ export default function App() {
   // 日セルをカスタム描画
   const renderDayCell = (arg) => {
     const dateStr = arg.date.toISOString().slice(0,10);
-    const arr = routines[dateStr] || [false,false,false];
-    const val = routineNums[dateStr] ?? 50;
+    const rec = routines[dateStr] || { flags:[false,false,false], value:50 };
+    const arr = rec.flags;
+    const val = rec.value;
 
     return (
       <div className="fc-daygrid-day-frame">
@@ -132,8 +148,15 @@ export default function App() {
           onMouseDown={(e)=> e.stopPropagation()}
           onChange={(e)=>{
             const v = e.target.value === '' ? '' : Math.min(100, Math.max(0, Number(e.target.value)));
-            setRoutineNums(prev => ({ ...prev, [dateStr]: v }));
+            setRoutines(prev => ({
+              ...prev,
+              [dateStr]: { flags: (prev[dateStr]?.flags ?? [false,false,false]), value: v }
+            }));
             console.log('value changed', dateStr, v);
+          }}
+          onBlur={(e)=> {
+            const n = e.target.value === '' ? 0 : Number(e.target.value);
+            postValue(dateStr, n);
           }}
           onClick={(e)=>e.stopPropagation()}
         />
