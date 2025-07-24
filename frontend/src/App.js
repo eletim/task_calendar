@@ -279,6 +279,48 @@ export default function App() {
       });
   };
 
+  // ドラッグ＆ドロップでイベント移動
+  const handleEventDrop = (dropInfo) => {
+    const ev = dropInfo.event;
+    const id = ev.id;
+    const done = ev.extendedProps.done;
+
+    // 完了済みのタスクは移動させない
+    if (done) {
+      dropInfo.revert();
+      return;
+    }
+
+    // 新しい日付（YYYY-MM-DD）を取得
+    const newDate = ev.startStr;
+
+    // サーバーのファイルベースPUTエンドポイントへ送信
+    fetch(`/api/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: newDate })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('更新失敗');
+      return res.json();
+    })
+    .then(updated => {
+      // state の events を更新（start フィールドを更新）
+      setEvents(prev =>
+        prev.map(e =>
+          e.id.toString() === updated.id.toString()
+            ? { ...e, start: updated.date }
+            : e
+        )
+      );
+    })
+    .catch(() => {
+      // エラー時は元の位置に戻す
+      dropInfo.revert();
+    });
+  };
+
+
   return (
     <div style={{ maxWidth: '800px', margin: '40px auto' }}>
       {/* 週／日ビューでセル高さ調整 & 土日着色 */}
@@ -375,6 +417,8 @@ export default function App() {
         plugins={[ dayGridPlugin, interactionPlugin ]}
         timeZone="local"
         initialView="dayGridMonth"
+        editable={true}                   // ← ここでドラッグ可に
+        eventDrop={handleEventDrop}       // ← ドロップハンドラを登録
         eventClick={handleEventClick}
         headerToolbar={{
           left: 'prev,next today',
