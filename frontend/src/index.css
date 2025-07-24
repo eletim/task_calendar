@@ -74,3 +74,71 @@ code {
 .task-item input[type="checkbox"] {
   cursor: pointer;
 }
+
+/* ─── 全体レイアウト ───────────────── */
+.calendar-container {
+  max-width: 800px;
+  margin: 40px auto;
+}
+.calendar-title {
+  text-align: center;
+}
+
+/* ─── フォーム共通 ───────────────── */
+.form-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.edit-form {
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #f00;
+  border-radius: 4px;
+  background: #fff0f0;
+}
+.add-form {
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f9f9f9;
+}
+
+/* ─── タスクアイテム ───────────────── */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.task-item.done span {
+  text-decoration: line-through;
+}
+
+/* ─── FullCalendar のカスタム調整 ───────────────── */
+/* 週／日／カスタム７日ビューのセル高 */
+.fc-dayGridWeek-view .fc-daygrid-day-frame,
+.fc-dayGridDay-view .fc-daygrid-day-frame,
+.fc-weekCentered-view .fc-daygrid-day-frame {
+  min-height: 250px !important;
+}
+/* イベントエリアの高さ */
+.fc-dayGridWeek-view .fc-daygrid-day-events,
+.fc-dayGridDay-view .fc-daygrid-day-events,
+.fc-weekCentered-view .fc-daygrid-day-events {
+  min-height: 200px !important;
+}
+/* 月ビューは元のまま */
+.fc-dayGridMonth-view .fc-daygrid-day-frame {
+  min-height: auto !important;
+  background-color: transparent !important;
+}
+/* 土日ヘッダー・日付カラー */
+.fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion,
+.fc-daygrid-day.fc-day-sat .fc-daygrid-day-top .fc-daygrid-day-number {
+  color: #007bff !important;
+}
+.fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion,
+.fc-daygrid-day.fc-day-sun .fc-daygrid-day-top .fc-daygrid-day-number {
+  color: #dc3545 !important;
+}
