@@ -228,6 +228,22 @@ export default function App() {
     });
   };
 
+  // 編集中のイベントを同じ内容・同日付で複製
+  const handleDuplicateEvent = () => {
+    const { title, date } = editingEvent;
+    fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, date }),
+    })
+    .then(res => res.json())
+    .then(created => {
+      // state に追加してフォームを閉じる
+      setEvents(prev => [...prev, created]);
+      handleCancelEdit();
+    });
+  };
+
   // イベント削除
   const handleDeleteEvent = () => {
     fetch(`/api/tasks/${editingEvent.id}`, {
@@ -335,6 +351,7 @@ export default function App() {
               required
             />
             <button type="submit">更新</button>
+            <button type="button" onClick={handleDuplicateEvent}>複製</button>
             <button type="button" onClick={handleDeleteEvent}>削除</button>
             <button type="button" onClick={handleCancelEdit}>キャンセル</button>
           </form>
