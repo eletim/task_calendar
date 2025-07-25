@@ -76,12 +76,50 @@ code {
 }
 
 /* ─── 全体レイアウト ───────────────── */
-.calendar-container {
-  max-width: 800px;
+.app-container {
+  display: flex;
+  gap: 20px;
+  width: 52%;
   margin: 40px auto;
+  padding: 0 10px;
+}
+
+/* カレンダー領域は幅広めに */
+.calendar-container {
+  flex: 0 0 80%;
 }
 .calendar-title {
   text-align: center;
+}
+
+
+
+/* 右側サイドバー */
+.sidebar {
+  flex: 0 0 20%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  padding: 16px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+}
+
+.sidebar ul {
+  list-style: disc inside;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.sidebar li {
+  margin-bottom: 6px;
 }
 
 /* ─── フォーム共通 ───────────────── */

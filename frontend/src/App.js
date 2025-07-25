@@ -336,75 +336,90 @@ export default function App() {
 
 
   return (
-    <div className="calendar-container">
-      <h1 className="calendar-title">タスクカレンダーv0.1</h1>
+    <div className="app-container">
 
-      {/* ─── 編集フォーム ───────────────────── */}
-      {editingEvent && (
-        <div className="edit-form">
-          <form onSubmit={handleUpdateEvent} className="form-inline">
-            <span>{editingEvent.date}</span>
-            <input
-              type="text"
-              value={editingTitle}
-              onChange={e => setEditingTitle(e.target.value)}
-              required
-            />
-            <button type="submit">更新</button>
-            <button type="button" onClick={handleDuplicateEvent}>複製</button>
-            <button type="button" onClick={handleDeleteEvent}>削除</button>
-            <button type="button" onClick={handleCancelEdit}>キャンセル</button>
-          </form>
-        </div>
-      )}
+      {/*------ カレンダー全体 ------*/}
+      <div className="calendar-container">
+        <h1 className="calendar-title">タスクカレンダーv0.1</h1>
 
-      {/* クリックした日付にだけ表示される追加フォーム */}
-      {selectedDate && (
-        <div className="add-form">
-          <form onSubmit={handleSubmit} className="form-inline">
-            <span>{selectedDate}</span>
-            <input
-              type="text"
-              value={newTitle}
-              onChange={e => setNewTitle(e.target.value)}
-              placeholder="イベントタイトル"
-              required
-            />
-            <button type="submit">追加</button>
-            <button type="button" onClick={handleCancel}>キャンセル</button>
-          </form>
-        </div>
-      )}
+        {/* ─── 編集フォーム ───────────────────── */}
+        {editingEvent && (
+          <div className="edit-form">
+            <form onSubmit={handleUpdateEvent} className="form-inline">
+              <span>{editingEvent.date}</span>
+              <input
+                type="text"
+                value={editingTitle}
+                onChange={e => setEditingTitle(e.target.value)}
+                required
+              />
+              <button type="submit">更新</button>
+              <button type="button" onClick={handleDuplicateEvent}>複製</button>
+              <button type="button" onClick={handleDeleteEvent}>削除</button>
+              <button type="button" onClick={handleCancelEdit}>キャンセル</button>
+            </form>
+          </div>
+        )}
 
-      {/* カレンダー本体 */}
-      <FullCalendar
-        ref={calendarRef}
-        plugins={[ dayGridPlugin, interactionPlugin ]}
-        timeZone="local"
-        initialView="dayGridMonth"
-        editable={true}                   // ← ここでドラッグ可に
-        eventDrop={handleEventDrop}       // ← ドロップハンドラを登録
-        eventClick={handleEventClick}
-        headerToolbar={{
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,dayGridWeek,dayGridDay'
-        }}
-        // カスタムウィークビュー定義
-        views={{
-          weekCentered: {
-            type: 'dayGrid',
-            // 期間だけ duration で指定
-            duration: { days: 7 },
-            buttonText: '７日表示'
-          }
-        }}
-        events={events}
-        eventContent={renderEventContent}
-        dateClick={handleDateClick}
-        dayCellContent={renderDayCell}
-        height="auto"
-      />
+        {/* クリックした日付にだけ表示される追加フォーム */}
+        {selectedDate && (
+          <div className="add-form">
+            <form onSubmit={handleSubmit} className="form-inline">
+              <span>{selectedDate}</span>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={e => setNewTitle(e.target.value)}
+                placeholder="イベントタイトル"
+                required
+              />
+              <button type="submit">追加</button>
+              <button type="button" onClick={handleCancel}>キャンセル</button>
+            </form>
+          </div>
+        )}
+
+        {/* カレンダー本体 */}
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[ dayGridPlugin, interactionPlugin ]}
+          timeZone="local"
+          initialView="dayGridMonth"
+          editable={true}                   // ← ここでドラッグ可に
+          eventDrop={handleEventDrop}       // ← ドロップハンドラを登録
+          eventClick={handleEventClick}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek,dayGridDay'
+          }}
+          // カスタムウィークビュー定義
+          views={{
+            weekCentered: {
+              type: 'dayGrid',
+              // 期間だけ duration で指定
+              duration: { days: 7 },
+              buttonText: '７日表示'
+            }
+          }}
+          events={events}
+          eventContent={renderEventContent}
+          dateClick={handleDateClick}
+          dayCellContent={renderDayCell}
+          height="auto"
+        />
+      </div>
+
+      {/*------- 右側サイドバー ------*/}
+      <div className="sidebar">
+        <h2>To Do リスト</h2>
+        {/* ここに右側に置きたいコンテンツを追加 */}
+        <ul>
+          {events.filter(ev => !ev.done).map(ev => (
+            <li key={ev.id}>{ev.title}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
