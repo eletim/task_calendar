@@ -1,16 +1,15 @@
 from flask import Blueprint, jsonify, request, abort
 import os, json
 
-tasks_bp = Blueprint('tasks', __name__)
+tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
 # JSON ファイルのパス
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, '..', '..', 'data', 'tasks.json')
 
 def ensure_data_file():
     """tasks.json がなければ空のリストを作成しておく"""
-    data_dir = os.path.dirname(DATA_FILE)
-    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
     if not os.path.exists(DATA_FILE):
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump([], f, ensure_ascii=False, indent=2)
@@ -31,59 +30,71 @@ def save_tasks(tasks):
 
 def next_id(tasks):
     """既存タスクの最大 id + 1 を返す"""
-    if not tasks:
-        return 1
-    return max(t.get('id', 0) for t in tasks) + 1
+    return max((t.get('id', 0) for t in tasks), default=0) + 1
 
-@tasks_bp.route('/api/tasks', methods=['GET'])
+@tasks_bp.route('/', methods=['GET'])
 def get_tasks():
+    """全タスク取得"""
     return jsonify(load_tasks())
 
-@tasks_bp.route('/api/tasks', methods=['POST'])
+@tasks_bp.route('/', methods=['POST'])
 def add_task():
-    new_task = request.get_json()
-    if not new_task.get('title') or not new_task.get('date'):
-        return jsonify({'error': 'title and date required'}), 400
+    """
+    新規タスク作成
+    必須：title
+    任意：date (YYYY-MM-DD)、done (boolean)
+    """
+    data = request.get_json() or {}
+    title = data.get('title', '').strip()
+    if not title:
+        return jsonify({'error': 'title is required'}), 400
 
     tasks = load_tasks()
-    new_task['id'] = next_id(tasks)
+    new_task = {
+        'id':    next_id(tasks),
+        'title': title,
+        # date フィールドがあればそのまま、なければ None (フロントで振り分け)
+        'date':  data.get('date'),
+        # done フラグは任意、指定がなければ False
+        'done':  bool(data.get('done', False))
+    }
     tasks.append(new_task)
     save_tasks(tasks)
     return jsonify(new_task), 201
 
-@tasks_bp.route('/api/tasks/<int:task_id>', methods=['PUT'])
+@tasks_bp.route('/<int:task_id>', methods=['PUT', 'PATCH'])
 def update_task(task_id):
-    data = request.get_json()
-    if 'title' not in data and 'date' not in data:
+    """
+    タスク更新（部分更新にも対応）
+    受け付けるフィールド：title, date, done
+     - date = null でカレンダー→リスト移動
+     - date = 'YYYY-MM-DD' でリスト→カレンダー移動
+    """
+    data = request.get_json() or {}
+    # 更新対象フィールドが一つもなければエラー
+    if not any(k in data for k in ('title', 'date', 'done')):
         return jsonify({'error': 'nothing to update'}), 400
 
     tasks = load_tasks()
     for t in tasks:
         if t.get('id') == task_id:
-            # 更新可能なフィールドだけ反映
             if 'title' in data:
-                t['title'] = data['title']
+                t['title'] = data['title'].strip() or t['title']
             if 'date' in data:
+                # 明示的に null を許容 → JSON では None
                 t['date'] = data['date']
+            if 'done' in data:
+                t['done'] = bool(data['done'])
             save_tasks(tasks)
             return jsonify(t)
     abort(404)
 
-@tasks_bp.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+@tasks_bp.route('/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
+    """タスク削除"""
     tasks = load_tasks()
     new_tasks = [t for t in tasks if t.get('id') != task_id]
     if len(new_tasks) == len(tasks):
         abort(404)
     save_tasks(new_tasks)
     return '', 204
-
-@tasks_bp.route('/api/tasks/<int:task_id>/toggle', methods=['PATCH'])
-def toggle_task(task_id):
-    tasks = load_tasks()                 # 既存の読み込み関数想定
-    for t in tasks:
-        if t.get('id') == task_id:
-            t['done'] = not t.get('done', False)
-            save_tasks(tasks)            # 既存の保存関数想定
-            return jsonify(t)
-    return jsonify({'error': 'not found'}), 404

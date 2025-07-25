@@ -273,7 +273,7 @@ export default function App() {
           checked={!!done}
           onChange={(e) => {
             e.stopPropagation();
-            toggleTaskDone(id);
+            toggleTaskDone(id, done);
           }}
         />
         <span> {arg.event.title} </span>
@@ -282,15 +282,22 @@ export default function App() {
   };
 
   // チェック切り替え処理
-  const toggleTaskDone = (taskId) => {
-    fetch(`/api/tasks/${taskId}/toggle`, { method: 'PATCH' })
-      .then(r => r.json())
-      .then(updated => {
-        // state の events を差し替え
-        setEvents(prev =>
-          prev.map(ev => ev.id === updated.id ? { ...ev, done: updated.done } : ev)
-        );
-      });
+  const toggleTaskDone = (taskId, currentDone) => {
+    fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: !currentDone })
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('更新失敗');
+      return r.json();
+    })
+    .then(updated => {
+      setEvents(prev =>
+        prev.map(ev => ev.id === updated.id ? { ...ev, done: updated.done } : ev)
+      );
+    })
+    .catch(console.error);
   };
 
   // ドラッグ＆ドロップでイベント移動
