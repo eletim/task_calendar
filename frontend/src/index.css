@@ -153,6 +153,31 @@ code {
   text-decoration: line-through;
 }
 
+/* サイドバーのタスクカード風スタイル */
+.sidebar-task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidebar-task-item {
+  margin-bottom: 6px;
+}
+.sidebar-task-content {
+  background-color: #3788d8;
+  border: 1px solid #2b6cb0;
+  color: #fff;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.sidebar-task-content:hover {
+  background-color: #2b6cb0;
+}
+
+
+
 /* ─── FullCalendar のカスタム調整 ───────────────── */
 /* 週／日／カスタム７日ビューのセル高 */
 .fc-dayGridWeek-view .fc-daygrid-day-frame,

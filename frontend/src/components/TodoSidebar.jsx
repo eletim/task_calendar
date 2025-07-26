@@ -7,7 +7,6 @@ export default function TodoSidebar({ tasks, create }) {
   const [inputValue, setInputValue] = useState('');
   const listRef                     = useRef(null);
 
-  // サイドバーの <ul> を“外部ドラッガブル”に初期化
   useEffect(() => {
     const draggable = new Draggable(listRef.current, {
       itemSelector: 'li',
@@ -37,7 +36,6 @@ export default function TodoSidebar({ tasks, create }) {
       {!isAdding && (
         <button onClick={handleAddClick}>+ タスクを追加</button>
       )}
-
       {isAdding && (
         <form className="sidebar-form" onSubmit={handleSubmit}>
           <input
@@ -48,19 +46,24 @@ export default function TodoSidebar({ tasks, create }) {
             required
           />
           <button type="submit">追加</button>
-          <button type="button" onClick={handleCancel}>キャンセル</button>
+          <button type="button" onClick={handleCancel}>
+            キャンセル
+          </button>
         </form>
       )}
 
-      <ul ref={listRef}>
+      <ul ref={listRef} className="sidebar-task-list">
         {tasks
           .filter(t => t.date === null)
           .map(t => (
             <li
               key={t.id}
+              className="sidebar-task-item"
               data-event={JSON.stringify({ id: t.id, title: t.title })}
             >
-              {t.title}
+              <div className="sidebar-task-content">
+                {t.title}
+              </div>
             </li>
           ))
         }
