@@ -18,6 +18,14 @@ export default function App() {
   const [editingTitle, setEditingTitle] = useState('');
   const calendarRef                      = useRef(null);
 
+  // サイドバー判定用
+  const dropInsideSidebar = jsEvent => {
+    const sidebar = document.querySelector('.sidebar');
+    const rect    = sidebar.getBoundingClientRect();
+    const { clientX: x, clientY: y } = jsEvent;
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  };
+
   // ルーチンの初期データ取得
   useEffect(() => {
     fetch('/api/routines')
@@ -239,6 +247,17 @@ export default function App() {
           timeZone="local"
           initialView="dayGridMonth"
           editable={true}
+          droppable={true}
+          eventReceive={info => {
+            // サイドバー → カレンダー
+            update(info.event.id, { date: info.event.startStr });
+          }}
+          eventDragStop={info => {
+            // カレンダー → サイドバー
+            if (dropInsideSidebar(info.jsEvent)) {
+              update(info.event.id, { date: null });
+            }
+          }}
           eventDrop={handleEventDrop}
           eventClick={handleEventClick}
           headerToolbar={{
