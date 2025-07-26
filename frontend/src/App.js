@@ -5,6 +5,7 @@ import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import { useTasks } from './hooks/useTasks';
+import TodoSidebar from './components/TodoSidebar';
 
 export default function App() {
   // useTasks フックで tasks と CRUD 関数を取得
@@ -260,14 +261,7 @@ export default function App() {
         />
       </div>
 
-      <div className="sidebar">
-        <h2>To Do リスト</h2>
-        <ul>
-          {tasks.filter(t => !t.done).map(t => (
-            <li key={t.id}>{t.title}</li>
-          ))}
-        </ul>
-      </div>
+      <TodoSidebar tasks={tasks} create={create} />
     </div>
   );
 }
