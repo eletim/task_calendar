@@ -176,6 +176,35 @@ code {
   background-color: #2b6cb0;
 }
 
+/* 編集フォーム＋ボタンのレイアウト改善 */
+.sidebar-form,
+.sidebar-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.sidebar-form input,
+.sidebar-edit-form input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.sidebar-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sidebar-button-group button {
+  flex: 1 1 calc(50% - 4px);
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
 
 
 /* ─── FullCalendar のカスタム調整 ───────────────── */

@@ -280,7 +280,12 @@ export default function App() {
         />
       </div>
 
-      <TodoSidebar tasks={tasks} create={create} />
+      <TodoSidebar
+         tasks={tasks}
+         create={create}
+         update={update}
+         remove={remove}
+      />
     </div>
   );
 }
