@@ -4,7 +4,7 @@ import os, json
 routines_bp = Blueprint('routines', __name__)
 
 BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE     = os.path.join(BASE_DIR, '..', '..', 'data', 'routines.json')
+DATA_FILE     = os.path.join(BASE_DIR, '..', '..', '..', 'data', 'routines.json')
 DEFAULT_FLAGS = [False, False, False]
 DEFAULT_VALUE = 0  # 0〜100
 

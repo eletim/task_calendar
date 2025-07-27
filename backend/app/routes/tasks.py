@@ -5,7 +5,7 @@ tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
 # JSON ファイルのパス
 BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE = os.path.join(BASE_DIR, '..', '..', 'data', 'tasks.json')
+DATA_FILE = os.path.join(BASE_DIR, '..', '..', '..', 'data', 'tasks.json')
 
 def ensure_data_file():
     """tasks.json がなければ空のリストを作成しておく"""
