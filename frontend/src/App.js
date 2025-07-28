@@ -48,6 +48,15 @@ export default function App() {
 
   // ─── 日付クリック ──────────────────────────────────
   const handleDateClick = (arg) => {
+    // habit 系のクリックなら無視する
+    if (
+      arg.jsEvent?.target?.closest('.habit-row') ||
+      arg.jsEvent?.target?.closest('.habit-input') ||
+      arg.jsEvent?.target?.closest('.habit-box')
+    ) {
+      return;
+    }
+    
     const api = calendarRef.current.getApi();
 
     if (api.view.type === 'dayGridWeek') {
