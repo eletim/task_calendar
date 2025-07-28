@@ -12,8 +12,6 @@ export default function App() {
   const { tasks, create, update, remove } = useTasks();
 
   const [routines, setRoutines]          = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [newTitle, setNewTitle]         = useState('');
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const calendarRef                      = useRef(null);
@@ -56,7 +54,7 @@ export default function App() {
       api.changeView('dayGridDay', arg.date);  // 🆕 週表示のときは1日表示に切り替える
       return;  // 🆕 フォームを開かないように return
     }
-    
+
     if (api.view.type === 'dayGridDay') {
       const startDate = new Date(arg.date);
       startDate.setDate(startDate.getDate() - 3); // 中央寄せのため前に3日戻す
@@ -69,17 +67,7 @@ export default function App() {
       startDate.setDate(startDate.getDate() - 3);
       api.changeView('dayGridWeek', startDate);
     }
-    setSelectedDate(toYmd(arg.date));
-    setNewTitle('');
   };
-
-  const handleSubmit = e => {
-    e.preventDefault();
-    if (!newTitle || !selectedDate) return;
-    create(newTitle, selectedDate);
-    setSelectedDate(null);
-  };
-  const handleCancel = () => setSelectedDate(null);
 
   // ─── ルーチン ○ クリック ───────────────────────────
   const handleBoxClick = dateStr => {
@@ -233,23 +221,6 @@ export default function App() {
               <button type="button" onClick={handleDuplicateEvent}>複製</button>
               <button type="button" onClick={handleDeleteEvent}>削除</button>
               <button type="button" onClick={handleCancelEdit}>キャンセル</button>
-            </form>
-          </div>
-        )}
-
-        {selectedDate && (
-          <div className="add-form">
-            <form onSubmit={handleSubmit} className="form-inline">
-              <span>{selectedDate}</span>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                placeholder="イベントタイトル"
-                required
-              />
-              <button type="submit">追加</button>
-              <button type="button" onClick={handleCancel}>キャンセル</button>
             </form>
           </div>
         )}
