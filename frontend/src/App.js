@@ -51,10 +51,16 @@ export default function App() {
   // ─── 日付クリック ──────────────────────────────────
   const handleDateClick = (arg) => {
     const api = calendarRef.current.getApi();
+
+    if (api.view.type === 'dayGridWeek') {
+      api.changeView('dayGridDay', arg.date);  // 🆕 週表示のときは1日表示に切り替える
+      return;  // 🆕 フォームを開かないように return
+    }
+
     if (api.view.type === 'dayGridMonth') {
       const startDate = new Date(arg.date);
       startDate.setDate(startDate.getDate() - 3);
-      api.changeView('weekCentered', startDate);
+      api.changeView('dayGridWeek', startDate);
     }
     setSelectedDate(toYmd(arg.date));
     setNewTitle('');
@@ -266,10 +272,16 @@ export default function App() {
             right: 'dayGridMonth,dayGridWeek,dayGridDay'
           }}
           views={{
-            weekCentered: {
+            dayGridMonth: {
+              buttonText: '月'
+            },
+            dayGridWeek: {
               type: 'dayGrid',
               duration: { days: 7 },
-              buttonText: '７日表示'
+              buttonText: '週'
+            },
+            dayGridDay: {
+              buttonText: '日'
             }
           }}
           events={events}
