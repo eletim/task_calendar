@@ -56,6 +56,13 @@ export default function App() {
       api.changeView('dayGridDay', arg.date);  // 🆕 週表示のときは1日表示に切り替える
       return;  // 🆕 フォームを開かないように return
     }
+    
+    if (api.view.type === 'dayGridDay') {
+      const startDate = new Date(arg.date);
+      startDate.setDate(startDate.getDate() - 3); // 中央寄せのため前に3日戻す
+      api.changeView('dayGridWeek', startDate);
+      return; // フォーム開かない
+    }
 
     if (api.view.type === 'dayGridMonth') {
       const startDate = new Date(arg.date);
