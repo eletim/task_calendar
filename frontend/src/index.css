@@ -234,3 +234,45 @@ code {
 .fc-daygrid-day.fc-day-sun .fc-daygrid-day-top .fc-daygrid-day-number {
   color: #dc3545 !important;
 }
+
+@media (max-width: 600px) {
+  /* レイアウト：縦並び＆幅100% */
+  .app-container {
+    flex-direction: column;
+    width: 100%;
+    margin: 20px auto;
+    padding: 0 8px;
+  }
+  /* カレンダーとサイドバーを幅100%に */
+  .calendar-container {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+  .sidebar {
+    flex: 0 0 100%;
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    font-size: 1rem;
+  }
+  /* タップしやすいサイズ調整 */
+  .habit-input {
+    width: 48px;
+    font-size: 1rem;
+    padding: 6px 8px;
+  }
+  .habit-box {
+    padding: 8px 12px;
+  }
+  /* サイドバー内ボタンは縦並び＆タップ領域拡大 */
+  .sidebar-button-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sidebar-form input,
+  .sidebar-edit-form input {
+    padding: 8px 12px;
+    font-size: 1rem;
+  }
+}
+
