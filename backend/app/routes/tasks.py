@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
+import re
 import os, json
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
@@ -56,7 +57,8 @@ def add_task():
         # date フィールドがあればそのまま、なければ None (フロントで振り分け)
         'date':  data.get('date'),
         # done フラグは任意、指定がなければ False
-        'done':  bool(data.get('done', False))
+        'done':  bool(data.get('done', False)),
+        'color': data.get('color', '#3788d8')  # デフォルトの色を設定
     }
     tasks.append(new_task)
     save_tasks(tasks)
@@ -72,7 +74,7 @@ def update_task(task_id):
     """
     data = request.get_json() or {}
     # 更新対象フィールドが一つもなければエラー
-    if not any(k in data for k in ('title', 'date', 'done')):
+    if not any(k in data for k in ('title', 'date', 'done', 'color')):
         return jsonify({'error': 'nothing to update'}), 400
 
     tasks = load_tasks()
@@ -85,6 +87,15 @@ def update_task(task_id):
                 t['date'] = data['date']
             if 'done' in data:
                 t['done'] = bool(data['done'])
+            if 'color' in data:
+                # 前後空白を除去
+                color = data['color'].strip()
+                # #RRGGBB 形式かチェック
+                if re.fullmatch(r'#[0-9A-Fa-f]{6}', color):
+                    t['color'] = color
+                else:
+                    # フォーマットが不正だったら無視 or エラーにする
+                    abort(400, description="invalid color format")
             save_tasks(tasks)
             return jsonify(t)
     abort(404)

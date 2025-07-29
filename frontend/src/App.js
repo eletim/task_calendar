@@ -37,6 +37,8 @@ export default function App() {
     title:   t.title,
     start:   t.date,
     done:    t.done,
+    backgroundColor: t.color,
+    borderColor:     t.color,
   }));
 
   const toYmd = (d) => {
@@ -56,7 +58,7 @@ export default function App() {
     ) {
       return;
     }
-    
+
     const api = calendarRef.current.getApi();
 
     if (api.view.type === 'dayGridWeek') {

@@ -5,8 +5,10 @@ import { Draggable } from '@fullcalendar/interaction';
 export default function TodoSidebar({ tasks, create, update, remove }) {
   const [isAdding, setIsAdding]         = useState(false);
   const [inputValue, setInputValue]     = useState('');
+  const [inputColor, setInputColor]     = useState('#3788d8');
   const [editingId, setEditingId]       = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [editingColor, setEditingColor] = useState('#3788d8');
   const listRef                         = useRef(null);
   const editInputRef                    = useRef(null);
 
@@ -35,8 +37,8 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
     e.preventDefault();
     const title = inputValue.trim();
     if (!title) return;
-    create(title);
-    setInputValue(''); setIsAdding(false);
+    create(title, null, inputColor);
+    setInputColor('#3788d8'); setIsAdding(false);
   };
 
   // 編集開始／フォーム操作
@@ -46,15 +48,20 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
     } else {
       setEditingId(t.id);
       setEditingTitle(t.title);
+      setEditingColor(t.color || '#3788d8');
       setIsAdding(false);
     }
   };
   const handleEditSubmit = e => {
     e.preventDefault();
-    update(editingId, { title: editingTitle });
+    update(editingId, { title: editingTitle, color: editingColor });
     setEditingId(null);
   };
-  const handleDuplicate  = () => { create(editingTitle); setEditingId(null); };
+  const handleDuplicate  = () => {
+    // 新規追加と同様に、第2引数に null、第3引数にカラーを渡す
+    create(editingTitle, null, editingColor);
+    setEditingId(null);
+  };
   const handleDelete     = () => { remove(editingId); setEditingId(null); };
   const handleEditCancel = () => setEditingId(null);
 
@@ -74,6 +81,11 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
             placeholder="新しいタスクを入力"
             required
           />
+          <input
+            type="color"
+            value={inputColor}
+            onChange={e => setInputColor(e.target.value)}
+          />
           <div className="sidebar-button-group">
             <button type="submit">追加</button>
             <button type="button" onClick={handleAddCancel}>キャンセル</button>
@@ -86,10 +98,11 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
           <li
             key={t.id}
             className="sidebar-task-item"
-            data-event={JSON.stringify({ id: t.id, title: t.title })}
+            data-event={JSON.stringify({ id: t.id, title: t.title, color: t.color})}
           >
             <div
               className="sidebar-task-content"
+              style={{ backgroundColor: t.color || '#3788d8', borderColor: t.color || '#3788d8' }}
               onClick={() => startEdit(t)}
             >
               {t.title}
@@ -103,6 +116,11 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
                   value={editingTitle}
                   onChange={e => setEditingTitle(e.target.value)}
                   required
+                />
+                <input
+                  type="color"
+                  value={editingColor}
+                  onChange={e => setEditingColor(e.target.value)}
                 />
                 <div className="sidebar-button-group">
                   <button type="submit">更新</button>
