@@ -206,6 +206,28 @@ code {
   white-space: nowrap;
 }
 
+/* カラー選択スウォッチを正方形に */
+.color-picker {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.color-swatch {
+  width: 32px;           /* 正方形の幅 */
+  height: 32px;          /* 正方形の高さ */
+  padding: 0;            /* ボタン内余白をリセット */
+  border: 2px solid transparent;
+  border-radius: 4px;    /* 好みで角丸 */
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* 選択中は枠色を変える */
+.color-swatch.selected {
+  border-color: #000;    /* 選択中の強調色 */
+}
+
 
 /* ─── FullCalendar のカスタム調整 ───────────────── */
 /* 週／日／カスタム７日ビューのセル高 */

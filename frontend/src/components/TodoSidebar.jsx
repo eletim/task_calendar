@@ -11,6 +11,7 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   const [editingColor, setEditingColor] = useState('#3788d8');
   const listRef                         = useRef(null);
   const editInputRef                    = useRef(null);
+  const COLORS = ['#3788d8', '#d81b60', '#388e3c', '#f57c00', '#7b1fa2', '#607d8b'];
 
   // ドラッグ初期化: カード要素だけをドラッグ対象にする
   useEffect(() => {
@@ -81,11 +82,17 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
             placeholder="新しいタスクを入力"
             required
           />
-          <input
-            type="color"
-            value={inputColor}
-            onChange={e => setInputColor(e.target.value)}
-          />
+        <div className="color-picker">
+          {COLORS.map(c => (
+            <button
+              key={c}
+              type="button"
+              className={`color-swatch${inputColor===c?' selected':''}`}
+              style={{ backgroundColor: c }}
+              onClick={() => setInputColor(c)}
+            />
+          ))}
+        </div>
           <div className="sidebar-button-group">
             <button type="submit">追加</button>
             <button type="button" onClick={handleAddCancel}>キャンセル</button>
@@ -117,11 +124,17 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
                   onChange={e => setEditingTitle(e.target.value)}
                   required
                 />
-                <input
-                  type="color"
-                  value={editingColor}
-                  onChange={e => setEditingColor(e.target.value)}
-                />
+                <div className="color-picker">
+                  {COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-swatch${editingColor===c?' selected':''}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setEditingColor(c)}
+                    />
+                  ))}
+                </div>
                 <div className="sidebar-button-group">
                   <button type="submit">更新</button>
                   <button type="button" onClick={handleDuplicate}>複製</button>
