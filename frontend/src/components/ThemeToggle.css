@@ -1,0 +1,27 @@
+/* frontend/src/components/ThemeToggle.css */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-button {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+}
+
+/* 選択中アイコンのハイライト */
+.theme-toggle-button.active {
+  color: var(--primary);
+}
+
+/* フォーカス時のアクセシビリティ対応 */
+.theme-toggle-button:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
