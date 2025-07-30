@@ -4,10 +4,25 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
 
-export default function App() {
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <label className="theme-switch">
+      <input
+        type="checkbox"
+        checked={theme === 'dark'}
+        onChange={toggleTheme}
+      />
+      {theme === 'light' ? '🌞' : '🌙'}
+    </label>
+  );
+}
+
+function InnerApp() {
   // useTasks フックで tasks と CRUD 関数を取得
   const { tasks, create, update, remove } = useTasks();
 
@@ -217,6 +232,7 @@ export default function App() {
     <div className="app-container">
       <div className="calendar-container">
         <h1 className="calendar-title">タスクカレンダーv0.1</h1>
+        <ThemeToggle />
 
         {editingEvent && (
           <div className="edit-form">
@@ -288,5 +304,13 @@ export default function App() {
          remove={remove}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <InnerApp />
+    </ThemeProvider>
   );
 }

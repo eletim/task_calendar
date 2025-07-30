@@ -1,15 +1,58 @@
+/* frontend/src/index.css */
+
+/* ライトモード用変数 */
+:root {
+  --bg: #ffffff;
+  --text: #222222;
+  --primary: #3788d8;
+  --primary-hover: #2b6cb0;
+  --sidebar-bg: #f9f9f9;
+  --border: #ccc;
+  --habit-bg: #e8f5e9;
+  --habit-border: #4caf50;
+  --habit-filled: #388e3c;
+  --circle-bg: #ffffff;
+  --error-border: #f00;
+  --error-bg: #fff0f0;
+  --sat-color: #007bff;
+  --sun-color: #dc3545;
+  --swatch-select: #000;
+}
+
+/* ダークモード用変数 */
+body[data-theme="dark"] {
+  --bg: #121212;
+  --text: #e0e0e0;
+  --primary: #90caf9;
+  --primary-hover: #64b5f6;
+  --sidebar-bg: #1e1e1e;
+  --border: #333333;
+  --habit-bg: #2a2a2a;
+  --habit-border: #4caf50;
+  --habit-filled: #81c784;
+  --circle-bg: #1e1e1e;
+  --error-border: #f44336;
+  --error-bg: #3a3a3a;
+  --sat-color: #64b5f6;
+  --sun-color: #e57373;
+  --swatch-select: #e0e0e0;
+}
+
+/* ── ベーススタイル ─────────────────────────────────── */
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 /****************************
@@ -18,12 +61,12 @@ code {
 
 /* 四角いボックス全体 */
 .habit-box {
-  display: inline-flex;           /* inline-block → inline-flex */
-  align-items: center;            /* 中央揃え */
-  background-color: #e8f5e9;      /* 薄い緑背景 */
-  border: 1px solid #4caf50;      /* 緑の枠線 */
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--habit-bg);
+  border: 1px solid var(--habit-border);
   border-radius: 4px;
-  padding: 4px 6px;               /* 縦横に余白を入れる */
+  padding: 4px 6px;
   cursor: pointer;
 }
 
@@ -37,17 +80,17 @@ code {
 .circle {
   width: 12px;
   height: 12px;
-  min-width: 12px;                /* 干渉を防ぐ */
+  min-width: 12px;
   min-height: 12px;
-  border: 1px solid #4caf50;      /* 緑の枠線 */
+  border: 1px solid var(--habit-border);
   border-radius: 50%;
-  background-color: #ffffff;      /* 白 */
+  background-color: var(--circle-bg);
   transition: background-color 0.2s ease;
 }
 
 /* ○がチェックされたとき */
 .circle.filled {
-  background-color: #388e3c;      /* 濃い緑 */
+  background-color: var(--habit-filled);
 }
 
 /* 1行に並べるラッパー */
@@ -75,7 +118,7 @@ code {
   cursor: pointer;
 }
 
-/* ─── 全体レイアウト ───────────────── */
+/* ─── 全体レイアウト ───────────────────────────────── */
 .app-container {
   display: flex;
   gap: 20px;
@@ -92,14 +135,12 @@ code {
   text-align: center;
 }
 
-
-
-/* 右側サイドバー */
+/* ─── 右側サイドバー ───────────────────────────────── */
 .sidebar {
   flex: 0 0 20%;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: var(--sidebar-bg);
   padding: 16px;
   max-height: 80vh;
   overflow-y: auto;
@@ -108,7 +149,7 @@ code {
 .sidebar h2 {
   margin-top: 0;
   font-size: 1.2rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 4px;
 }
 
@@ -122,33 +163,36 @@ code {
   margin-bottom: 6px;
 }
 
-/* ─── フォーム共通 ───────────────── */
+/* ─── フォーム共通 ───────────────────────────────── */
 .form-inline {
   display: flex;
   gap: 8px;
   align-items: center;
 }
+
 .edit-form {
   padding: 10px;
   margin-bottom: 20px;
-  border: 1px solid #f00;
+  border: 1px solid var(--error-border);
   border-radius: 4px;
-  background: #fff0f0;
+  background: var(--error-bg);
 }
+
 .add-form {
   padding: 10px;
   margin-bottom: 20px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #f9f9f9;
+  background: var(--sidebar-bg);
 }
 
-/* ─── タスクアイテム ───────────────── */
+/* ─── タスクアイテム ───────────────────────────────── */
 .task-item {
   display: flex;
   align-items: center;
   gap: 4px;
 }
+
 .task-item.done span {
   text-decoration: line-through;
 }
@@ -159,21 +203,24 @@ code {
   padding: 0;
   margin: 0;
 }
+
 .sidebar-task-item {
   margin-bottom: 6px;
 }
+
 .sidebar-task-content {
-  background-color: #3788d8;
-  border: 1px solid #2b6cb0;
-  color: #fff;
+  background-color: var(--primary);
+  border: 1px solid var(--primary-hover);
+  color: var(--circle-bg);
   border-radius: 4px;
   padding: 6px 10px;
   font-size: 0.9rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
+
 .sidebar-task-content:hover {
-  background-color: #2b6cb0;
+  background-color: var(--primary-hover);
 }
 
 /* 編集フォーム＋ボタンのレイアウト改善 */
@@ -206,7 +253,7 @@ code {
   white-space: nowrap;
 }
 
-/* カラー選択スウォッチを正方形に */
+/* ─── カラー選択スウォッチ ─────────────────────────── */
 .color-picker {
   display: flex;
   gap: 8px;
@@ -214,22 +261,20 @@ code {
 }
 
 .color-swatch {
-  width: 32px;           /* 正方形の幅 */
-  height: 32px;          /* 正方形の高さ */
-  padding: 0;            /* ボタン内余白をリセット */
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: 2px solid transparent;
-  border-radius: 4px;    /* 好みで角丸 */
+  border-radius: 4px;
   cursor: pointer;
   box-sizing: border-box;
 }
 
-/* 選択中は枠色を変える */
 .color-swatch.selected {
-  border-color: #000;    /* 選択中の強調色 */
+  border-color: var(--swatch-select);
 }
 
-
-/* ─── FullCalendar のカスタム調整 ───────────────── */
+/* ─── FullCalendar のカスタム調整 ───────────────────── */
 /* 週／日／カスタム７日ビューのセル高 */
 .fc-dayGridWeek-view .fc-daygrid-day-frame,
 .fc-dayGridDay-view .fc-daygrid-day-frame,
@@ -250,11 +295,11 @@ code {
 /* 土日ヘッダー・日付カラー */
 .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion,
 .fc-daygrid-day.fc-day-sat .fc-daygrid-day-top .fc-daygrid-day-number {
-  color: #007bff !important;
+  color: var(--sat-color) !important;
 }
 .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion,
 .fc-daygrid-day.fc-day-sun .fc-daygrid-day-top .fc-daygrid-day-number {
-  color: #dc3545 !important;
+  color: var(--sun-color) !important;
 }
 
 @media (max-width: 600px) {
@@ -297,4 +342,3 @@ code {
     font-size: 1rem;
   }
 }
-
