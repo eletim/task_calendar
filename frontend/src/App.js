@@ -1,6 +1,7 @@
 // frontend/src/App.js
 import React, { useState, useEffect, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react';
+import jaLocale from '@fullcalendar/core/locales/ja';
 import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
@@ -243,6 +244,7 @@ function InnerApp() {
         )}
 
         <FullCalendar
+         locale={jaLocale} 
           ref={calendarRef}
           plugins={[ dayGridPlugin, interactionPlugin ]}
           timeZone="local"
