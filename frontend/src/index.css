@@ -96,6 +96,7 @@ code {
 /* 1行に並べるラッパー */
 .habit-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 4px;
@@ -303,14 +304,65 @@ code {
 }
 
 @media (max-width: 600px) {
-  /* レイアウト：縦並び＆幅100% */
+  /* ── 日セル内イベント領域の横スクロール防止 ───────────────────────── */
+  .fc-daygrid-day-frame .fc-daygrid-day-events {
+    overflow-x: hidden;      /* 横にはみ出したら切り捨て */
+  }
+
+  /* ── FullCalendar のイベント要素幅をセル幅内に収める ─────────────────── */
+  .fc-daygrid-event {
+    box-sizing: border-box;  /* padding を含めて幅計算 */
+    max-width: 100%;         /* 親コンテナ幅を超えない */
+  }
+
+  /* ── カスタムした .task-item（Flex）にも幅制限を ───────────────────── */
+  .task-item {
+    width: 100%;             /* 親要素いっぱいに */
+    box-sizing: border-box;  /* パディング込みで100% */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── タイトルテキストの省略表示 or 折り返し ───────────────────────── */
+  .task-item span {
+    flex: 1 1 auto;          /* 残り幅を確保 */
+    white-space: nowrap;     /* 折り返さずに */
+    overflow: hidden;
+    text-overflow: ellipsis; /* はみ出したら「…」に */
+  }
+  .fc-daygrid-day-top {
+    margin-bottom: 4px;  /* 日付番号と習慣行の間隔 */
+  }
+
+  /* ルーチン行の折り返しと余白拡大 */
+  .habit-row {
+    flex-wrap: wrap;     /* 折り返し許可 */
+    gap: 8px;            /* アイテム間隔を広く */
+  }
+
+  /* 数値入力欄を幅50%にしてタップしやすく */
+  .habit-input {
+    width: 50%;          /* 入力欄をセル幅の半分に */
+    min-width: 48px;     /* 極端に狭くならないよう最低幅を確保 */
+    font-size: 1rem;
+    padding: 6px 8px;
+    box-sizing: border-box;
+  }
+
+  /* ○ボックスを折り返し可能に */
+  .habit-box {
+    flex: 0 0 40%;       /* セル幅の40%を確保 */
+    padding: 8px 12px;
+  }
+
+  /* サイドバー以下は既存の調整のまま…… */
   .app-container {
     flex-direction: column;
     width: 100%;
     margin: 20px auto;
     padding: 0 8px;
   }
-  /* カレンダーとサイドバーを幅100%に */
   .calendar-container {
     flex: 0 0 100%;
     width: 100%;
@@ -321,17 +373,7 @@ code {
     margin-top: 16px;
     padding: 12px;
     font-size: 1rem;
-  }
-  /* タップしやすいサイズ調整 */
-  .habit-input {
-    width: 48px;
-    font-size: 1rem;
-    padding: 6px 8px;
-  }
-  .habit-box {
-    padding: 8px 12px;
-  }
-  /* サイドバー内ボタンは縦並び＆タップ領域拡大 */
+  }  
   .sidebar-button-group {
     flex-direction: column;
     gap: 8px;
