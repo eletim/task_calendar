@@ -303,6 +303,23 @@ code {
   color: var(--sun-color) !important;
 }
 
+/* ── カレンダー上のタスクタイトルを常に折り返し表示 ───────────────────── */
+.fc-daygrid-event .task-item span {
+  /* 既存の nowrap／ellipsis 設定を上書き */
+  white-space: normal !important;   /* 折り返しを常に許可 */
+  word-break: break-word;           /* 単語内でも改行 */
+  overflow-wrap: anywhere;          /* 長い文字列も折り返し */
+}
+
+
+/* ── イベントコンテナをFlex化してgapを指定 ───────────────── */
+.fc-daygrid-day-events {
+  display: flex;              /* 子要素を縦並びFlexに */
+  flex-direction: column;
+  gap: 2px;                   /* 子要素間の隙間を2pxに */
+}
+
+
 @media (max-width: 600px) {
   /* ── 日セル内イベント領域の横スクロール防止 ───────────────────────── */
   .fc-daygrid-day-frame .fc-daygrid-day-events {
@@ -322,17 +339,6 @@ code {
     display: flex;
     align-items: center;
     gap: 4px;
-  }
-
-  /* ── タイトルテキストの省略表示 or 折り返し ───────────────────────── */
-  .task-item span {
-    flex: 1 1 auto;          /* 残り幅を確保 */
-    white-space: nowrap;     /* 折り返さずに */
-    overflow: hidden;
-    text-overflow: ellipsis; /* はみ出したら「…」に */
-  }
-  .fc-daygrid-day-top {
-    margin-bottom: 4px;  /* 日付番号と習慣行の間隔 */
   }
 
   /* ルーチン行の折り返しと余白拡大 */
