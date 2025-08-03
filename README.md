@@ -52,8 +52,8 @@ ngrok http 8000
 AレコードやAAAAレコードのDOMAIN設定がうまくいっているかは、下記で確認可能。  
 正しく行っていれば、設定したglobal ipが帰ってくる  
 ```sh
-dig +short A eletim.jp  # output: <your ipv4>
-dig +short AAAA eletim.jp  # output: <your ipv6>
+dig +short A <your_domain_name>  # output: <your ipv4>
+dig +short AAAA <your_domain_name>  # output: <your ipv6>
 ```
 
 ## server
@@ -74,6 +74,32 @@ sudo ufw enable
 ```sh
 curl -6 "http://[<your ipv6>]:8000/"
 curl -6 "http://[<your domain name>]:8000/"
+```
+
+
+
+## infra 構成
+
+```sh
+task\_calendar/
+├── infra
+│   ├── nginx
+│   │   └── my\_flask\_app.conf.tpl
+│   └── setup\_nginx.sh
+└── README.md
+```
+
+### Nginx 設定のデプロイ
+
+```bash
+# infra/setup_nginx.sh に実行権限を付与
+chmod +x infra/setup_nginx.sh
+
+# ドメイン名を指定して実行
+# → /etc/nginx/sites-available/your-domain.conf を生成し、
+#    sites-enabled にシンボリックリンクを作成、
+#    nginx -t → systemctl reload nginx を自動実行します
+infra/setup_nginx.sh your-domain.com
 ```
 
 
