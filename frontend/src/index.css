@@ -212,7 +212,7 @@ code {
 .sidebar-task-content {
   background-color: var(--primary);
   border: 1px solid var(--primary-hover);
-  color: var(--circle-bg);
+  color: #ffffff !important;
   border-radius: 4px;
   padding: 6px 10px;
   font-size: 0.9rem;
