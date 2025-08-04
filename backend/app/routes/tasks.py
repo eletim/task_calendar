@@ -50,6 +50,11 @@ def add_task():
     if not title:
         return jsonify({'error': 'title is required'}), 400
 
+    # カテゴリーを受け取る（未指定時は "normal"）
+    category = data.get('category', 'normal')
+    if category not in ('normal', 'recurring', 'low'):
+        return jsonify({'error': 'invalid category'}), 400
+
     tasks = load_tasks()
     new_task = {
         'id':    next_id(tasks),
@@ -58,7 +63,8 @@ def add_task():
         'date':  data.get('date'),
         # done フラグは任意、指定がなければ False
         'done':  bool(data.get('done', False)),
-        'color': data.get('color', '#3788d8')  # デフォルトの色を設定
+        'color': data.get('color', '#3788d8'),
+        'category': category,
     }
     tasks.append(new_task)
     save_tasks(tasks)
@@ -74,7 +80,7 @@ def update_task(task_id):
     """
     data = request.get_json() or {}
     # 更新対象フィールドが一つもなければエラー
-    if not any(k in data for k in ('title', 'date', 'done', 'color')):
+    if not any(k in data for k in ('title', 'date', 'done', 'color', 'category')):
         return jsonify({'error': 'nothing to update'}), 400
 
     tasks = load_tasks()
@@ -96,6 +102,11 @@ def update_task(task_id):
                 else:
                     # フォーマットが不正だったら無視 or エラーにする
                     abort(400, description="invalid color format")
+            if 'category' in data:
+                cat = data['category']
+                if cat not in ('normal', 'recurring', 'low'):
+                    abort(400, description="invalid category")
+                t['category'] = cat
             save_tasks(tasks)
             return jsonify(t)
     abort(404)

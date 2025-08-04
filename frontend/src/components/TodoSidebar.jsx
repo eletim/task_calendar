@@ -6,9 +6,12 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   const [isAdding, setIsAdding]         = useState(false);
   const [inputValue, setInputValue]     = useState('');
   const [inputColor, setInputColor]     = useState('#3788d8');
+  const [inputCategory, setInputCategory]       = useState('normal');
   const [editingId, setEditingId]       = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [editingColor, setEditingColor] = useState('#3788d8');
+  const [editingCategory, setEditingCategory]   = useState('normal');
+  const [filter, setFilter]                     = useState('all');
   const listRef                         = useRef(null);
   const editInputRef                    = useRef(null);
   const COLORS = ['#3788d8', '#d81b60', '#388e3c', '#f57c00', '#7b1fa2', '#607d8b'];
@@ -33,12 +36,12 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
 
   // 新規追加フォーム
   const handleAddClick   = () => setIsAdding(true);
-  const handleAddCancel  = () => { setIsAdding(false); setInputValue(''); };
+  const handleAddCancel  = () => { setIsAdding(false); setInputValue(''); setInputCategory('normal');};
   const handleAddSubmit  = e => {
     e.preventDefault();
     const title = inputValue.trim();
     if (!title) return;
-    create(title, null, inputColor);
+    create(title, null, inputColor, inputCategory);
     setInputColor('#3788d8'); setIsAdding(false);
   };
 
@@ -55,12 +58,12 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   };
   const handleEditSubmit = e => {
     e.preventDefault();
-    update(editingId, { title: editingTitle, color: editingColor });
+    update(editingId, { title: editingTitle, color: editingColor, category: editingCategory });
     setEditingId(null);
   };
   const handleDuplicate  = () => {
     // 新規追加と同様に、第2引数に null、第3引数にカラーを渡す
-    create(editingTitle, null, editingColor);
+    create(editingTitle, null, editingColor, editingCategory);
     setEditingId(null);
   };
   const handleDelete     = () => { remove(editingId); setEditingId(null); };
@@ -69,6 +72,13 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   return (
     <div className="sidebar">
       <h2>To Do リスト</h2>
+      {/* カテゴリーフィルター */}
+      <div className="category-filter">
+        <button onClick={() => setFilter('all')}>すべて</button>
+        <button onClick={() => setFilter('normal')}>通常</button>
+        <button onClick={() => setFilter('recurring')}>繰り返し</button>
+        <button onClick={() => setFilter('low')}>低優先度</button>
+      </div>
 
       {!isAdding && editingId === null && (
         <button onClick={handleAddClick}>+ タスクを追加</button>
@@ -93,6 +103,15 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
             />
           ))}
         </div>
+          {/* カテゴリー選択 */}
+          <select
+            value={inputCategory}
+            onChange={e => setInputCategory(e.target.value)}
+          >
+            <option value="normal">通常</option>
+            <option value="recurring">繰り返し</option>
+            <option value="low">低優先度</option>
+          </select>
           <div className="sidebar-button-group">
             <button type="submit">追加</button>
             <button type="button" onClick={handleAddCancel}>キャンセル</button>
@@ -101,11 +120,14 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
       )}
 
       <ul ref={listRef} className="sidebar-task-list">
-        {tasks.filter(t => t.date === null).map(t => (
+        {tasks
+           .filter(t => t.date === null)
+           .filter(t => filter === 'all' || t.category === filter)
+           .map(t => (
           <li
             key={t.id}
             className="sidebar-task-item"
-            data-event={JSON.stringify({ id: t.id, title: t.title, color: t.color})}
+            data-event={JSON.stringify({ id: t.id, title: t.title, color: t.color, category: t.category})}
           >
             <div
               className="sidebar-task-content"
@@ -124,6 +146,15 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
                   onChange={e => setEditingTitle(e.target.value)}
                   required
                 />
+                {/* カテゴリー選択 */}
+                <select
+                  value={editingCategory}
+                  onChange={e => setEditingCategory(e.target.value)}
+                >
+                  <option value="normal">通常</option>
+                  <option value="recurring">繰り返し</option>
+                  <option value="low">低優先度</option>
+                </select>
                 <div className="color-picker">
                   {COLORS.map(c => (
                     <button

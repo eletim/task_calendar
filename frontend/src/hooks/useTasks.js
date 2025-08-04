@@ -11,11 +11,11 @@ export function useTasks() {
     if (res.ok) setTasks(await res.json());
   };
 
-  const create  = async (title, date=null, color='#3788d8') => {
+  const create  = async (title, date=null, color='#3788d8', category='normal') => {
     await fetch(API, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ title, date, color }),
+      body: JSON.stringify({ title, date, color, category }),
     });
     fetchAll();
   };
