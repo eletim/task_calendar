@@ -12,19 +12,27 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   const [editingColor, setEditingColor] = useState('#3788d8');
   const [editingCategory, setEditingCategory]   = useState('normal');
   const [filter, setFilter]                     = useState('all');
+  const [normalOpen,   setNormalOpen]   = useState(true);
+  const [recurringOpen, setRecurringOpen] = useState(false);
+  const [lowOpen,      setLowOpen]      = useState(false);
   const listRef                         = useRef(null);
   const editInputRef                    = useRef(null);
   const COLORS = ['#3788d8', '#d81b60', '#388e3c', '#f57c00', '#7b1fa2', '#607d8b'];
 
-  // ドラッグ初期化: カード要素だけをドラッグ対象にする
+  // ドラッグ初期化: 全セクションの .sidebar-task-list にバインド
   useEffect(() => {
-    const draggable = new Draggable(listRef.current, {
-      // ここを .sidebar-task-content に変更
-      itemSelector: '.sidebar-task-content',
-      eventData: contentEl =>
-        JSON.parse(contentEl.parentElement.getAttribute('data-event')),
-    });
-    return () => draggable.destroy();
+    // 1) 全てのリストを取得
+    const lists = document.querySelectorAll('.sidebar-task-list');
+    // 2) 各リストに Draggable を生成
+    const draggables = Array.from(lists).map(listEl =>
+      new Draggable(listEl, {
+        itemSelector: '.sidebar-task-content',
+        eventData: contentEl =>
+          JSON.parse(contentEl.parentElement.getAttribute('data-event')),
+      })
+    );
+    // クリーンアップ
+    return () => draggables.forEach(d => d.destroy());
   }, [tasks]);
 
   // 編集モード時に必ずフォーカス
@@ -68,6 +76,93 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   };
   const handleDelete     = () => { remove(editingId); setEditingId(null); };
   const handleEditCancel = () => setEditingId(null);
+
+  // タスクカード描画ロジック
+  const renderTaskItem = t => (
+    <li
+      key={t.id}
+      className="sidebar-task-item"
+      data-event={JSON.stringify({
+        id:       t.id,
+        title:    t.title,
+        color:    t.color,
+        category: t.category
+      })}
+    >
+      {/* タスクカード表示 */}
+      <div
+        className="sidebar-task-content"
+        style={{
+          backgroundColor: t.color || '#3788d8',
+          borderColor:     t.color || '#3788d8'
+        }}
+        onClick={() => startEdit(t)}
+      >
+        {t.title}
+      </div>
+
+      {/* 編集モードフォーム */}
+      {editingId === t.id && (
+        <form className="sidebar-edit-form" onSubmit={handleEditSubmit}>
+          <input
+            ref={editInputRef}
+            type="text"
+            value={editingTitle}
+            onChange={e => setEditingTitle(e.target.value)}
+            required
+          />
+          {/* カテゴリー選択 */}
+          <select
+            value={editingCategory}
+            onChange={e => setEditingCategory(e.target.value)}
+          >
+            <option value="normal">通常</option>
+            <option value="recurring">繰り返し</option>
+            <option value="low">低優先度</option>
+          </select>
+          {/* カラー選択 */}
+          <div className="color-picker">
+            {COLORS.map(c => (
+              <button
+                key={c}
+                type="button"
+                className={`color-swatch${editingColor === c ? ' selected' : ''}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setEditingColor(c)}
+              />
+            ))}
+          </div>
+          {/* 更新・複製・削除・キャンセル */}
+          <div className="sidebar-button-group">
+            <button type="submit">更新</button>
+            <button type="button" onClick={handleDuplicate}>複製</button>
+            <button type="button" onClick={handleDelete}>削除</button>
+            <button type="button" onClick={handleEditCancel}>キャンセル</button>
+          </div>
+        </form>
+      )}
+    </li>
+  );
+
+  // セクション描画ヘルパー
+  const renderSection = ({ label, isOpen, setOpen, filterFn, withRef = false }) => (
+    <div className="sidebar-category">
+      <h3 className="category-header" onClick={() => setOpen(!isOpen)}>
+        {label} {isOpen ? '▾' : '▸'}
+      </h3>
+      {isOpen && (
+        <ul
+          className="sidebar-task-list"
+          {...(withRef ? { ref: listRef } : {})}
+        >
+          {tasks
+            .filter(t => t.date === null)
+            .filter(filterFn)
+            .map(renderTaskItem)}
+        </ul>
+      )}
+    </div>
+  );
 
   return (
     <div className="sidebar">
@@ -119,64 +214,25 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
         </form>
       )}
 
-      <ul ref={listRef} className="sidebar-task-list">
-        {tasks
-           .filter(t => t.date === null)
-           .filter(t => filter === 'all' || t.category === filter)
-           .map(t => (
-          <li
-            key={t.id}
-            className="sidebar-task-item"
-            data-event={JSON.stringify({ id: t.id, title: t.title, color: t.color, category: t.category})}
-          >
-            <div
-              className="sidebar-task-content"
-              style={{ backgroundColor: t.color || '#3788d8', borderColor: t.color || '#3788d8' }}
-              onClick={() => startEdit(t)}
-            >
-              {t.title}
-            </div>
-
-            {editingId === t.id && (
-              <form className="sidebar-edit-form" onSubmit={handleEditSubmit}>
-                <input
-                  ref={editInputRef}
-                  type="text"
-                  value={editingTitle}
-                  onChange={e => setEditingTitle(e.target.value)}
-                  required
-                />
-                {/* カテゴリー選択 */}
-                <select
-                  value={editingCategory}
-                  onChange={e => setEditingCategory(e.target.value)}
-                >
-                  <option value="normal">通常</option>
-                  <option value="recurring">繰り返し</option>
-                  <option value="low">低優先度</option>
-                </select>
-                <div className="color-picker">
-                  {COLORS.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`color-swatch${editingColor===c?' selected':''}`}
-                      style={{ backgroundColor: c }}
-                      onClick={() => setEditingColor(c)}
-                    />
-                  ))}
-                </div>
-                <div className="sidebar-button-group">
-                  <button type="submit">更新</button>
-                  <button type="button" onClick={handleDuplicate}>複製</button>
-                  <button type="button" onClick={handleDelete}>削除</button>
-                  <button type="button" onClick={handleEditCancel}>キャンセル</button>
-                </div>
-              </form>
-            )}
-          </li>
-        ))}
-      </ul>
+      {renderSection({
+        label:    '通常のタスク',
+        isOpen:   normalOpen,
+        setOpen:  setNormalOpen,
+        filterFn: t => t.category === 'normal',
+        withRef:  true
+      })}
+      {renderSection({
+        label:    '低優先度のタスク',
+        isOpen:   lowOpen,
+        setOpen:  setLowOpen,
+        filterFn: t => t.category !== 'normal' && t.category !== 'recurring'
+      })}
+      {renderSection({
+        label:    '繰り返しのタスク',
+        isOpen:   recurringOpen,
+        setOpen:  setRecurringOpen,
+        filterFn: t => t.category === 'recurring'
+      })}
     </div>
   );
 }
