@@ -11,7 +11,6 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   const [editingTitle, setEditingTitle] = useState('');
   const [editingColor, setEditingColor] = useState('#3788d8');
   const [editingCategory, setEditingCategory]   = useState('normal');
-  const [filter, setFilter]                     = useState('all');
   const [normalOpen,   setNormalOpen]   = useState(true);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [lowOpen,      setLowOpen]      = useState(false);
@@ -167,13 +166,6 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   return (
     <div className="sidebar">
       <h2>To Do リスト</h2>
-      {/* カテゴリーフィルター */}
-      <div className="category-filter">
-        <button onClick={() => setFilter('all')}>すべて</button>
-        <button onClick={() => setFilter('normal')}>通常</button>
-        <button onClick={() => setFilter('recurring')}>繰り返し</button>
-        <button onClick={() => setFilter('low')}>低優先度</button>
-      </div>
 
       {!isAdding && editingId === null && (
         <button onClick={handleAddClick}>+ タスクを追加</button>
