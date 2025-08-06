@@ -32,7 +32,7 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
     );
     // クリーンアップ
     return () => draggables.forEach(d => d.destroy());
-  }, [tasks]);
+  }, [tasks, normalOpen, lowOpen, recurringOpen]);
 
   // 編集モード時に必ずフォーカス
   useEffect(() => {
