@@ -1,21 +1,57 @@
-// frontend/src/components/TodoSidebar.jsx
+/* Updated TodoSidebar.jsx with @dnd-kit sortable support */
 import React, { useState, useEffect, useRef } from 'react';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripHorizontal as DragHandleIcon } from 'lucide-react';
 import { Draggable } from '@fullcalendar/interaction';
 
-export default function TodoSidebar({ tasks, create, update, remove }) {
-  const [isAdding, setIsAdding]         = useState(false);
-  const [inputValue, setInputValue]     = useState('');
-  const [inputColor, setInputColor]     = useState('#3788d8');
-  const [inputCategory, setInputCategory]       = useState('normal');
-  const [editingId, setEditingId]       = useState(null);
+// Sortable item wrapper
+function SortableItem({ id, disabled, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id, disabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  };
+
+  return (
+    <li ref={setNodeRef} style={style} {...attributes} className="sidebar-task-item">
+      <div className="drag-handle" {...listeners}>
+        <DragHandleIcon size={16} />
+      </div>
+      {children}
+    </li>
+  );
+}
+
+export default function TodoSidebar({ tasks, create, update, remove, updateOrder }) {
+  // state, refs, existing code...
+  const [isAdding, setIsAdding] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [inputColor, setInputColor] = useState('#3788d8');
+  const [inputCategory, setInputCategory] = useState('normal');
+  const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [editingColor, setEditingColor] = useState('#3788d8');
-  const [editingCategory, setEditingCategory]   = useState('normal');
-  const [normalOpen,   setNormalOpen]   = useState(true);
+  const [editingCategory, setEditingCategory] = useState('normal');
+  const [normalOpen, setNormalOpen] = useState(true);
   const [recurringOpen, setRecurringOpen] = useState(false);
-  const [lowOpen,      setLowOpen]      = useState(false);
-  const listRef                         = useRef(null);
-  const editInputRef                    = useRef(null);
+  const [lowOpen, setLowOpen] = useState(false);
+  const editInputRef = useRef(null);
+  const listRef      = useRef(null);
   const COLORS = ['#3788d8', '#d81b60', '#388e3c', '#f57c00', '#7b1fa2', '#607d8b'];
 
   // ドラッグ初期化: 全セクションの .sidebar-task-list にバインド
@@ -75,6 +111,43 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   };
   const handleDelete     = () => { remove(editingId); setEditingId(null); };
   const handleEditCancel = () => setEditingId(null);
+
+
+    // ─── DnD kit handlers ───────────────────────────
+  const handleDragEnd = event => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+    const activeTask = tasks.find(t => t.id === activeId);
+    const overTask = tasks.find(t => t.id === overId);
+    // Determine target category
+    const targetCategory = overTask ? overTask.category : activeTask.category;
+
+    // Build list of tasks in that category (and sidebar only)
+    const categoryList = tasks
+      .filter(t => t.category === targetCategory && t.date === null)
+      .sort((a, b) => a.order - b.order);
+
+    const oldIndex = categoryList.findIndex(t => t.id === activeId);
+    const newIndex = categoryList.findIndex(t => t.id === overId);
+    const newOrderIds = arrayMove(
+      categoryList.map(t => t.id),
+      oldIndex,
+      newIndex
+    );
+
+    // Save new order and category for each
+    newOrderIds.forEach((id, idx) => {
+      const updateCat = tasks.find(t => t.id === id).category;
+      updateOrder(id, idx, updateCat);
+    });
+    // If moved across category
+    if (activeTask.category !== targetCategory) {
+      update(activeId, { category: targetCategory });
+    }
+  };
 
   // タスクカード描画ロジック
   const renderTaskItem = t => (
@@ -144,26 +217,35 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
   );
 
   // セクション描画ヘルパー
-  const renderSection = ({ label, isOpen, setOpen, filterFn, withRef = false }) => (
+const renderSection = ({ label, isOpen, setOpen, filterFn, withRef = false }) => {
+  // ■ ここで order 順にソートした配列を作成
+  const items = tasks
+    .filter(t => t.date === null)
+    .filter(filterFn)
+    .sort((a, b) => a.order - b.order);
+  return (
     <div className="sidebar-category">
       <h3 className="category-header" onClick={() => setOpen(!isOpen)}>
         {label} {isOpen ? '▾' : '▸'}
       </h3>
-      {isOpen && (
-        <ul
-          className="sidebar-task-list"
-          {...(withRef ? { ref: listRef } : {})}
-        >
-          {tasks
-            .filter(t => t.date === null)
-            .filter(filterFn)
-            .map(renderTaskItem)}
-        </ul>
-      )}
+     {isOpen && (
+       <SortableContext
+         items={items.map(t => t.id)}
+         strategy={verticalListSortingStrategy}
+       >
+         <ul className="sidebar-task-list" {...(withRef ? { ref: listRef } : {})}>
+           {items.map(renderTaskItem)}
+         </ul>
+       </SortableContext>
+     )}
     </div>
-  );
+  );}
 
   return (
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
     <div className="sidebar">
       <h2>To Do リスト</h2>
 
@@ -226,5 +308,6 @@ export default function TodoSidebar({ tasks, create, update, remove }) {
         filterFn: t => t.category === 'recurring'
       })}
     </div>
+    </DndContext>
   );
 }

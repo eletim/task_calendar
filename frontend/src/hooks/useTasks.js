@@ -8,14 +8,23 @@ export function useTasks() {
 
   const fetchAll = async () => {
     const res = await fetch(API);
-    if (res.ok) setTasks(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      // order が無ければ 0 を補完し、order 順にソートして保存
+      setTasks(
+        data
+          .map(t => ({ ...t, order: t.order ?? 0 }))
+          .sort((a, b) => a.order - b.order)
+      );
+    }
   };
 
   const create  = async (title, date=null, color='#3788d8', category='normal') => {
+    const nextOrder = tasks.length;
     await fetch(API, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ title, date, color, category }),
+      body: JSON.stringify({ title, date, color, category, order: nextOrder }),
     });
     fetchAll();
   };
@@ -29,10 +38,20 @@ export function useTasks() {
     fetchAll();
   };
 
+  // ─────────── 並び替え用 API 呼び出し ───────────
+  const updateOrder = async (id, order, category) => {
+    await fetch(`${API}/${id}/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order, category }),
+    });
+    fetchAll();
+  };
+
   const remove  = async id => {
     await fetch(`${API}/${id}`, { method:'DELETE' });
     fetchAll();
   };
 
-  return { tasks, create, update, remove };
+  return { tasks, create, update, remove, updateOrder };
 }
