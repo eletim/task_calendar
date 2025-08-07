@@ -1,4 +1,4 @@
-/* Fixed TodoSidebar.jsx - ドラッグハンドルを正しく実装 */
+/* Fixed TodoSidebar.jsx - 全体ドラッグ対応 */
 import React, { useState, useEffect, useRef } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import {
@@ -21,9 +21,8 @@ function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
     transition,
     isDragging
   } = useSortable({ 
-    id, 
+    id,
     disabled,
-    // ドラッグハンドルのみでドラッグ可能にする
     data: { task }
   });
   
@@ -36,23 +35,23 @@ function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
 
   return (
     <li 
-      ref={setNodeRef} 
-      style={style} 
-      className="sidebar-task-item" 
+      ref={setNodeRef}
+      style={style}
+      className="sidebar-task-item"
       data-event={dataEvent}
+      {...attributes}
+      {...listeners}
     >
       <div className="sidebar-task-wrapper">
-        {/* ドラッグハンドル - ここだけドラッグ可能 */}
+        {/* ドラッグハンドル - 見た目用 */}
         <div 
           className="drag-handle" 
-          {...attributes} 
-          {...listeners}
           style={{ cursor: disabled ? 'default' : 'grab' }}
         >
           <DragHandleIcon size={16} />
         </div>
         
-        {/* タスクコンテンツ - ドラッグ不可、クリックのみ */}
+        {/* タスクコンテンツ - クリックのみ */}
         <div
           className="sidebar-task-content"
           style={{ 
@@ -85,46 +84,41 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
   const editInputRef = useRef(null);
   const COLORS = ['#3788d8', '#d81b60', '#388e3c', '#f57c00', '#7b1fa2', '#607d8b'];
 
-  // dnd-kit用のセンサー設定 - より適切な検知設定
+  // dnd-kit 用センサー
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // 8px動かすとドラッグ開始
-      },
+      activationConstraint: { distance: 8 }
     })
   );
 
-  // FullCalendar Draggable の初期化 - カレンダー用のドラッグ
+  // FullCalendar Draggable 初期化
   useEffect(() => {
-    // ドラッグハンドル以外の部分（.sidebar-task-content）のみをFullCalendar用にする
     const lists = document.querySelectorAll('.sidebar-task-list');
     const draggables = Array.from(lists).map(listEl =>
       new Draggable(listEl, {
-        itemSelector: '.sidebar-task-content', // コンテンツ部分のみ
+        itemSelector: '.sidebar-task-item',
         eventData: contentEl => {
           const taskItem = contentEl.closest('.sidebar-task-item');
           return JSON.parse(taskItem.getAttribute('data-event'));
         },
-        // ドラッグハンドル部分は除外
         ignore: '.drag-handle'
       })
     );
-    
     return () => draggables.forEach(d => d.destroy());
   }, [tasks, normalOpen, lowOpen, recurringOpen]);
 
-  // 編集モード時にフォーカス
+  // 編集モードでフォーカス
   useEffect(() => {
     if (editingId !== null && editInputRef.current) {
       editInputRef.current.focus();
     }
   }, [editingId]);
 
-  // フォーム関連の関数
+  // フォームハンドラ
   const handleAddClick = () => setIsAdding(true);
-  const handleAddCancel = () => { 
-    setIsAdding(false); 
-    setInputValue(''); 
+  const handleAddCancel = () => {
+    setIsAdding(false);
+    setInputValue('');
     setInputCategory('normal');
   };
   const handleAddSubmit = e => {
@@ -133,12 +127,12 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
     if (!title) return;
     create(title, null, inputColor, inputCategory);
     setInputValue('');
-    setInputColor('#3788d8'); 
+    setInputColor('#3788d8');
     setInputCategory('normal');
     setIsAdding(false);
   };
 
-  // 編集関連の関数
+  // 編集ハンドラ
   const startEdit = t => {
     if (editingId === t.id) {
       editInputRef.current?.focus();
@@ -150,82 +144,52 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       setIsAdding(false);
     }
   };
-
   const handleEditSubmit = e => {
     e.preventDefault();
-    update(editingId, { 
-      title: editingTitle, 
-      color: editingColor, 
-      category: editingCategory 
-    });
+    update(editingId, { title: editingTitle, color: editingColor, category: editingCategory });
     setEditingId(null);
   };
-
   const handleDuplicate = () => {
     create(editingTitle, null, editingColor, editingCategory);
     setEditingId(null);
   };
-
-  const handleDelete = () => { 
-    remove(editingId); 
-    setEditingId(null); 
-  };
-
+  const handleDelete = () => { remove(editingId); setEditingId(null); };
   const handleEditCancel = () => setEditingId(null);
 
-  // dnd-kit のドラッグ終了ハンドラー
+  // dnd-kit ドラッグ終了
   const handleDragEnd = event => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
     const activeId = active.id;
     const overId = over.id;
-    const activeTask = tasks.find(t => t.id == activeId);
-    const overTask = tasks.find(t => t.id == overId);
-    
+    const activeTask = tasks.find(t => String(t.id) === activeId);
+    const overTask = tasks.find(t => String(t.id) === overId);
     if (!activeTask || !overTask) return;
 
-    // 同じカテゴリ内での移動
     if (activeTask.category === overTask.category) {
       const categoryTasks = tasks
         .filter(t => t.category === activeTask.category && t.date === null)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-      const oldIndex = categoryTasks.findIndex(t => t.id == activeId);
-      const newIndex = categoryTasks.findIndex(t => t.id == overId);
-
+      const oldIndex = categoryTasks.findIndex(t => String(t.id) === activeId);
+      const newIndex = categoryTasks.findIndex(t => String(t.id) === overId);
       if (oldIndex !== -1 && newIndex !== -1) {
         const newOrder = arrayMove(categoryTasks, oldIndex, newIndex);
-        newOrder.forEach((task, index) => {
-          if (updateOrder) {
-            updateOrder(task.id, index, task.category);
-          }
-        });
+        newOrder.forEach((task, index) => updateOrder?.(task.id, index, task.category));
       }
     } else {
-      // 異なるカテゴリ間の移動
       const targetCategory = overTask.category;
       const targetTasks = tasks
         .filter(t => t.category === targetCategory && t.date === null)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-      const newIndex = targetTasks.findIndex(t => t.id == overId);
+      const newIndex = targetTasks.findIndex(t => String(t.id) === overId);
       const newOrder = [...targetTasks];
       newOrder.splice(newIndex, 0, { ...activeTask, category: targetCategory });
-
-      // カテゴリ変更
       update(activeId, { category: targetCategory });
-      
-      // 順序更新
-      newOrder.forEach((task, index) => {
-        if (updateOrder) {
-          updateOrder(task.id, index, targetCategory);
-        }
-      });
+      newOrder.forEach((task, index) => updateOrder?.(task.id, index, targetCategory));
     }
   };
 
-  // タスクアイテムのレンダリング
+  // タスクアイテム表示
   const renderTaskItem = t => (
     <SortableItem
       key={t.id}
@@ -233,12 +197,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       disabled={editingId === t.id || isAdding}
       task={t}
       onEdit={startEdit}
-      dataEvent={JSON.stringify({
-        id: t.id,
-        title: t.title,
-        color: t.color,
-        category: t.category,
-      })}
+      dataEvent={JSON.stringify({ id: t.id, title: t.title, color: t.color, category: t.category })}
     >
       {editingId === t.id && (
         <form className="sidebar-edit-form" onSubmit={handleEditSubmit}>
@@ -249,10 +208,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
             onChange={e => setEditingTitle(e.target.value)}
             required
           />
-          <select
-            value={editingCategory}
-            onChange={e => setEditingCategory(e.target.value)}
-          >
+          <select value={editingCategory} onChange={e => setEditingCategory(e.target.value)}>
             <option value="normal">通常</option>
             <option value="recurring">繰り返し</option>
             <option value="low">低優先度</option>
@@ -279,7 +235,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
     </SortableItem>
   );
 
-  // セクションのレンダリング
+  // セクションレンダリング
   const renderSection = ({ label, isOpen, setOpen, filterFn }) => {
     const items = tasks
       .filter(t => t.date === null)
@@ -292,10 +248,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
           {label} {isOpen ? '▾' : '▸'}
         </h3>
         {isOpen && items.length > 0 && (
-          <SortableContext
-            items={items.map(t => String(t.id))}
-            strategy={verticalListSortingStrategy}
-          >
+          <SortableContext items={items.map(t => String(t.id))} strategy={verticalListSortingStrategy}>
             <ul className="sidebar-task-list">
               {items.map(renderTaskItem)}
             </ul>
@@ -306,18 +259,10 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="sidebar">
         <h2>To Do リスト</h2>
-
-        {!isAdding && editingId === null && (
-          <button onClick={handleAddClick}>+ タスクを追加</button>
-        )}
-
+        {!isAdding && editingId === null && <button onClick={handleAddClick}>+ タスクを追加</button>}
         {isAdding && (
           <form className="sidebar-form" onSubmit={handleAddSubmit}>
             <input
@@ -338,10 +283,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
                 />
               ))}
             </div>
-            <select
-              value={inputCategory}
-              onChange={e => setInputCategory(e.target.value)}
-            >
+            <select value={inputCategory} onChange={e => setInputCategory(e.target.value)}>
               <option value="normal">通常</option>
               <option value="recurring">繰り返し</option>
               <option value="low">低優先度</option>
@@ -352,27 +294,9 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
             </div>
           </form>
         )}
-
-        {renderSection({
-          label: '通常のタスク',
-          isOpen: normalOpen,
-          setOpen: setNormalOpen,
-          filterFn: t => t.category === 'normal'
-        })}
-        
-        {renderSection({
-          label: '低優先度のタスク',
-          isOpen: lowOpen,
-          setOpen: setLowOpen,
-          filterFn: t => t.category !== 'normal' && t.category !== 'recurring'
-        })}
-        
-        {renderSection({
-          label: '繰り返しのタスク',
-          isOpen: recurringOpen,
-          setOpen: setRecurringOpen,
-          filterFn: t => t.category === 'recurring'
-        })}
+        {renderSection({ label: '通常のタスク', isOpen: normalOpen, setOpen: setNormalOpen, filterFn: t => t.category === 'normal' })}
+        {renderSection({ label: '低優先度のタスク', isOpen: lowOpen, setOpen: setLowOpen, filterFn: t => t.category !== 'normal' && t.category !== 'recurring' })}
+        {renderSection({ label: '繰り返しのタスク', isOpen: recurringOpen, setOpen: setRecurringOpen, filterFn: t => t.category === 'recurring' })}
       </div>
     </DndContext>
   );
