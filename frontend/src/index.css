@@ -143,7 +143,6 @@ code {
   border-radius: 4px;
   background-color: var(--sidebar-bg);
   padding: 16px;
-  max-height: 80vh;
   overflow-y: auto;
 }
 
@@ -200,7 +199,7 @@ code {
 
 /* サイドバーのタスクカード風スタイル */
 .sidebar-task-list {
-  list-style: none;
+  list-style: none !important;
   padding: 0;
   margin: 0;
 }
@@ -319,6 +318,29 @@ code {
   gap: 2px;                   /* 子要素間の隙間を2pxに */
 }
 
+.sidebar-task-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  cursor: grab;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.sidebar-task-content {
+  flex: 1;
+  /* 既存のスタイル */
+}
 
 @media (max-width: 600px) {
   /* ── 日セル内イベント領域の横スクロール防止 ───────────────────────── */
