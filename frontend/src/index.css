@@ -143,7 +143,6 @@ code {
   border-radius: 4px;
   background-color: var(--sidebar-bg);
   padding: 16px;
-  max-height: 80vh;
   overflow-y: auto;
 }
 
@@ -200,7 +199,7 @@ code {
 
 /* サイドバーのタスクカード風スタイル */
 .sidebar-task-list {
-  list-style: none;
+  list-style: none !important;
   padding: 0;
   margin: 0;
 }
