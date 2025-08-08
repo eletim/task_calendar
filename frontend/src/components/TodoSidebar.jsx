@@ -1,4 +1,4 @@
-/* Fixed TodoSidebar.jsx - 全体ドラッグ対応 */
+/* Fixed TodoSidebar.jsx - ドラッグハンドル除去＆全体ドラッグ対応 */
 import React, { useState, useEffect, useRef } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import {
@@ -8,7 +8,6 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripHorizontal as DragHandleIcon } from 'lucide-react';
 import { Draggable } from '@fullcalendar/interaction';
 
 // Sortable item wrapper
@@ -43,21 +42,14 @@ function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
       {...listeners}
     >
       <div className="sidebar-task-wrapper">
-        {/* ドラッグハンドル - 見た目用 */}
-        <div 
-          className="drag-handle" 
-          style={{ cursor: disabled ? 'default' : 'grab' }}
-        >
-          <DragHandleIcon size={16} />
-        </div>
-        
-        {/* タスクコンテンツ - クリックのみ */}
+        {/* タスクコンテンツ - 全体ドラッグ可能 */}
         <div
           className="sidebar-task-content"
-          style={{ 
-            backgroundColor: task.color || '#3788d8', 
+          style={{
+            backgroundColor: task.color || '#3788d8',
             borderColor: task.color || '#3788d8',
-            flex: 1
+            flex: 1,
+            cursor: disabled ? 'default' : 'grab'
           }}
           onClick={() => onEdit(task)}
         >
@@ -100,8 +92,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
         eventData: contentEl => {
           const taskItem = contentEl.closest('.sidebar-task-item');
           return JSON.parse(taskItem.getAttribute('data-event'));
-        },
-        ignore: '.drag-handle'
+        }
       })
     );
     return () => draggables.forEach(d => d.destroy());
