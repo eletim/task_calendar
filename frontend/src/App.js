@@ -43,6 +43,8 @@ function InnerApp() {
     done:    t.done,
     backgroundColor: t.color,
     borderColor:     t.color,
+    category:         t.category, 
+    color:            t.color     
   }));
 
   const toYmd = (d) => {
@@ -251,9 +253,26 @@ function InnerApp() {
           initialView="dayGridMonth"
           editable={true}
           droppable={true}
-          eventReceive={info => {
-            // サイドバー → カレンダー
-            update(info.event.id, { date: info.event.startStr });
+          eventReceive={async info => {
+            const ev   = info.event;
+            const id   = ev.id;
+            const date = ev.startStr;
+                   
+            // ドロップされたイベントIDから、ローカルstateのtasksを検索
+            const task = tasks.find(t => String(t.id) === String(id));
+            if (!task) {
+              console.error(`Task not found for id=${id}`, info.event);
+              return;
+            }
+            const { title, color, category } = task;
+         
+            // 1) 元タスクをカレンダーに移動
+            update(id, { date });
+           
+            // 2) 繰り返しタスクならサイドバーに複製
+            if (category === 'recurring') {
+              create(title, null, color, category);
+            }
           }}
           eventDragStop={info => {
             // カレンダー → サイドバー

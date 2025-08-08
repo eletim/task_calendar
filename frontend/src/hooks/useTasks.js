@@ -21,10 +21,19 @@ export function useTasks() {
 
   const create  = async (title, date=null, color='#3788d8', category='normal') => {
     const nextOrder = tasks.length;
+    // date が null でなければ含めるペイロードを組み立て
+    const payload = {
+      title,
+      color,
+      category,
+      order: nextOrder,
+      ...(date != null ? { date } : {}),
+    };
+
     await fetch(API, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ title, date, color, category, order: nextOrder }),
+      body: JSON.stringify(payload),
     });
     fetchAll();
   };
