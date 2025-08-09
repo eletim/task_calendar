@@ -1,21 +1,20 @@
 // frontend/src/App.js
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react';
 import jaLocale from '@fullcalendar/core/locales/ja';
 import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import ThemeToggle from './components/ThemeToggle';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
+import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
 
 
 function InnerApp() {
   // useTasks フックで tasks と CRUD 関数を取得
   const { tasks, create, update, remove } = useTasks();
-
-  const [routines, setRoutines]          = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const calendarRef                      = useRef(null);
@@ -23,17 +22,11 @@ function InnerApp() {
   // サイドバー判定用
   const dropInsideSidebar = jsEvent => {
     const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return false;
     const rect    = sidebar.getBoundingClientRect();
     const { clientX: x, clientY: y } = jsEvent;
     return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   };
-
-  // ルーチンの初期データ取得
-  useEffect(() => {
-    fetch('/api/routines')
-      .then(res => res.json())
-      .then(data => setRoutines(data));
-  }, []);
 
   // FullCalendar 用に tasks を変換
   const events = tasks.map(t => ({
@@ -47,23 +40,10 @@ function InnerApp() {
     color:            t.color     
   }));
 
-  const toYmd = (d) => {
-    const y    = d.getFullYear();
-    const m    = String(d.getMonth() + 1).padStart(2, '0');
-    const day  = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
   // ─── 日付クリック ──────────────────────────────────
   const handleDateClick = (arg) => {
     // habit 系のクリックなら無視する
-    if (
-      arg.jsEvent?.target?.closest('.habit-row') ||
-      arg.jsEvent?.target?.closest('.habit-input') ||
-      arg.jsEvent?.target?.closest('.habit-box')
-    ) {
-      return;
-    }
+    if (isHabitTarget(arg.jsEvent?.target)) return;
 
     const api = calendarRef.current.getApi();
 
@@ -84,86 +64,6 @@ function InnerApp() {
       startDate.setDate(startDate.getDate() - 3);
       api.changeView('dayGridWeek', startDate);
     }
-  };
-
-  // ─── ルーチン ○ クリック ───────────────────────────
-  const handleBoxClick = dateStr => {
-    const rec         = routines[dateStr] || { flags:[false,false,false], value:0 };
-    const filledCount = rec.flags.filter(v => v).length;
-    toggleCircle(dateStr, filledCount < rec.flags.length ? filledCount : -1);
-  };
-
-  const toggleCircle = (dateStr, idx) => {
-    fetch('/api/routines/flags', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date: dateStr, index: idx })
-    })
-    .then(r => r.json())
-    .then(res => {
-      setRoutines(prev => ({
-        ...prev,
-        [res.date]: { flags: res.state, value: res.value }
-      }));
-    });
-  };
-
-  const postValue = (dateStr, value) => {
-    fetch('/api/routines/value', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date: dateStr, value })
-    })
-    .then(r => r.json())
-    .then(res => {
-      setRoutines(prev => ({
-        ...prev,
-        [res.date]: { flags: res.state, value: res.value }
-      }));
-    });
-  };
-
-  const renderDayCell = arg => {
-    const dateStr = toYmd(arg.date);
-    const rec     = routines[dateStr] || { flags:[false,false,false], value:0 };
-    const arr     = rec.flags;
-    const val     = rec.value;
-
-    return (
-      <div className="fc-daygrid-day-frame">
-        <div className="fc-daygrid-day-top">
-          <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>
-        </div>
-        <div className="habit-row" onClick={e => e.stopPropagation()}>
-          <input
-            className="habit-input"
-            type="number"
-            min={0}
-            max={100}
-            value={val}
-            onMouseDown={e => e.stopPropagation()}
-            onChange={e => {
-              const v = e.target.value === '' 
-                ? '' 
-                : Math.min(100, Math.max(0, Number(e.target.value)));
-              setRoutines(prev => ({
-                ...prev,
-                [dateStr]: { flags: prev[dateStr]?.flags || [false,false,false], value: v }
-              }));
-            }}
-            onBlur={e => postValue(dateStr, e.target.value === '' ? 0 : Number(e.target.value))}
-            onClick={e => e.stopPropagation()}
-          />
-          <div className="habit-box" onClick={e => { e.stopPropagation(); handleBoxClick(dateStr); }}>
-            <div className="habit-circles">
-              {arr.map((on, i) => (
-                <span key={i} className={on ? 'circle filled' : 'circle'} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   // ─── イベント編集／削除／複製 ────────────────────────
@@ -245,6 +145,7 @@ function InnerApp() {
           </div>
         )}
 
+        <HabitProvider>
         <FullCalendar
          locale={jaLocale} 
           ref={calendarRef}
@@ -303,9 +204,12 @@ function InnerApp() {
           events={events}
           eventContent={renderEventContent}
           dateClick={handleDateClick}
-          dayCellContent={renderDayCell}
+          dayCellContent={(arg) => (
+            <HabitCell date={arg.date} dayNumberText={arg.dayNumberText} />
+          )}
           height="auto"
         />
+        </HabitProvider>
       </div>
 
       <TodoSidebar

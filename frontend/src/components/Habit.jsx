@@ -1,0 +1,124 @@
+// frontend/src/components/Habit.jsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+const HabitContext = createContext(null);
+
+export function HabitProvider({ children }) {
+  const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
+
+  useEffect(() => {
+    fetch('/api/routines')
+      .then(r => r.json())
+      .then(setRoutines)
+      .catch(console.error);
+  }, []);
+
+  const toYmd = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const getRecord = (dateStr) =>
+    routines[dateStr] || { flags: [false, false, false], value: 0 };
+
+  const setLocalValue = (dateStr, v) => {
+    setRoutines(prev => ({
+      ...prev,
+      [dateStr]: { flags: prev[dateStr]?.flags || [false, false, false], value: v }
+    }));
+  };
+
+  const postValue = async (dateStr, value) => {
+    const r = await fetch('/api/routines/value', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ date: dateStr, value })
+    });
+    const res = await r.json();
+    setRoutines(prev => ({
+      ...prev,
+      [res.date]: { flags: res.state, value: res.value }
+    }));
+  };
+
+  const toggleCircle = async (dateStr, idx) => {
+    const r = await fetch('/api/routines/flags', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ date: dateStr, index: idx })
+    });
+    const res = await r.json();
+    setRoutines(prev => ({
+      ...prev,
+      [res.date]: { flags: res.state, value: res.value }
+    }));
+  };
+
+  const cycleFill = (dateStr) => {
+    const rec = getRecord(dateStr);
+    const filledCount = rec.flags.filter(Boolean).length;
+    toggleCircle(dateStr, filledCount < rec.flags.length ? filledCount : -1);
+  };
+
+  return (
+    <HabitContext.Provider value={{ toYmd, getRecord, setLocalValue, postValue, cycleFill }}>
+      {children}
+    </HabitContext.Provider>
+  );
+}
+
+function useHabit() {
+  const ctx = useContext(HabitContext);
+  if (!ctx) throw new Error('HabitCell must be used within <HabitProvider>');
+  return ctx;
+}
+
+export function HabitCell({ date, dayNumberText }) {
+  const { toYmd, getRecord, setLocalValue, postValue, cycleFill } = useHabit();
+  const dateStr = toYmd(date);
+  const rec = getRecord(dateStr);
+  const arr = rec.flags;
+  const val = rec.value;
+
+  return (
+    <div className="fc-daygrid-day-frame">
+      <div className="fc-daygrid-day-top">
+        <span className="fc-daygrid-day-number">{dayNumberText}</span>
+      </div>
+      <div className="habit-row" onClick={(e) => e.stopPropagation()}>
+        <input
+          className="habit-input"
+          type="number"
+          min={0}
+          max={100}
+          value={val}
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            const v = e.target.value === ''
+              ? ''
+              : Math.min(100, Math.max(0, Number(e.target.value)));
+            setLocalValue(dateStr, v);
+          }}
+          onBlur={(e) => postValue(dateStr, e.target.value === '' ? 0 : Number(e.target.value))}
+          onClick={(e) => e.stopPropagation()}
+        />
+        <div className="habit-box" onClick={(e) => { e.stopPropagation(); cycleFill(dateStr); }}>
+          <div className="habit-circles">
+            {arr.map((on, i) => (
+              <span key={i} className={on ? 'circle filled' : 'circle'} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// dateClickでhabit要素クリックを無視するためのヘルパー
+export function isHabitTarget(el) {
+  if (!el) return false;
+  const closest = el.closest?.('.habit-row, .habit-input, .habit-box');
+  return !!closest;
+}
