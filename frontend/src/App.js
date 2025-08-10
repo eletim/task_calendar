@@ -1,5 +1,5 @@
 // frontend/src/App.js
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import FullCalendar from '@fullcalendar/react';
 import jaLocale from '@fullcalendar/core/locales/ja';
 import dayGridPlugin  from '@fullcalendar/daygrid';
@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
 import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
+import { useTheme } from './contexts/ThemeContext';
 
 
 function InnerApp() {
@@ -18,6 +19,26 @@ function InnerApp() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const calendarRef                      = useRef(null);
+  const { theme, toggleTheme }           = useTheme();  // 現在のテーマとトグル関数を取得
+
+  // 起動時に保存されたテーマを適用
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        const saved = data?.theme;
+        if (saved === 'dark' && theme !== 'dark') {
+          toggleTheme(); // 現在が light なら dark に切り替え
+        } else if (saved === 'light' && theme !== 'light') {
+          toggleTheme(); // 現在が dark なら light に切り替え
+        }
+        // saved が 'default' または undefined の場合は何もしない。
+        // 既存の ThemeProvider がブラウザのカラースキームを使います。
+      })
+      .catch((err) => {
+        console.error('設定の読み込みに失敗しました', err);
+      });
+  }, []); // 初回マウント時に一度だけ実行
 
   // サイドバー判定用
   const dropInsideSidebar = jsEvent => {
