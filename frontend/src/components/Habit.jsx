@@ -5,8 +5,24 @@ const HabitContext = createContext(null);
 
 export function HabitProvider({ children }) {
   const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
+  const [flagsLength, setFlagsLength] = useState(3); // フラグの長さ（設定から読み込む）
 
   useEffect(() => {
+    // 設定から routine.flags.length を取得
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        const len =
+          data?.routine?.flags?.length ?? 3; // length が存在しない場合は既定値3
+        if (typeof len === 'number' && len > 0) {
+          setFlagsLength(len);
+        }
+      })
+      .catch(err => {
+        console.warn('settings の読み込みに失敗しました', err);
+      });
+
+    // routines データの読み込み
     fetch('/api/routines')
       .then(r => r.json())
       .then(setRoutines)
@@ -21,7 +37,7 @@ export function HabitProvider({ children }) {
   };
 
   const getRecord = (dateStr) =>
-    routines[dateStr] || { flags: [false, false, false], value: 0 };
+    routines[dateStr] || { flags: Array(flagsLength).fill(false), value: 0 };
 
   const setLocalValue = (dateStr, v) => {
     setRoutines(prev => ({
