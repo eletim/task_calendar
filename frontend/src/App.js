@@ -7,6 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
 import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
@@ -145,7 +147,12 @@ function InnerApp() {
       <div className="calendar-container">
         <div className="header">
           <h1 className="calendar-title">タスクカレンダーv0.1</h1>
-          <ThemeToggle />
+          <div className="header-actions">
+            <ThemeToggle />
+            <Link to="/settings" className="icon-btn" aria-label="設定を開く" title="設定">
+              <Settings size={18} />
+            </Link>
+          </div>
         </div>
 
         {editingEvent && (
@@ -243,10 +250,28 @@ function InnerApp() {
   );
 }
 
+function SettingsPage() {
+  return (
+    <div className="settings-page">
+      <div className="header">
+        <h1 className="calendar-title">設定</h1>
+        <Link to="/" className="icon-btn" aria-label="カレンダーに戻る">←</Link>
+      </div>
+      {/* ここに設定フォームを配置（テーマ、習慣設定、既存の /api/settings の編集UIなど） */}
+      <div className="settings-body">設定内容をここに</div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
-      <InnerApp />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<InnerApp />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
