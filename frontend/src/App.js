@@ -9,6 +9,7 @@ import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { Settings } from 'lucide-react';
+import SettingsPage from './pages/SettingsPage';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
 import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
@@ -246,19 +247,6 @@ function InnerApp() {
          update={update}
          remove={remove}
       />
-    </div>
-  );
-}
-
-function SettingsPage() {
-  return (
-    <div className="settings-page">
-      <div className="header">
-        <h1 className="calendar-title">設定</h1>
-        <Link to="/" className="icon-btn" aria-label="カレンダーに戻る">←</Link>
-      </div>
-      {/* ここに設定フォームを配置（テーマ、習慣設定、既存の /api/settings の編集UIなど） */}
-      <div className="settings-body">設定内容をここに</div>
     </div>
   );
 }
