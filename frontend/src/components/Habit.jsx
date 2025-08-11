@@ -5,9 +5,9 @@ const HabitContext = createContext(null);
 
 export function HabitProvider({ children }) {
   const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
-  const [flagsLength, setFlagsLength] = useState(3); // フラグの長さ（設定から読み込む）
-  const [ifThenLength, setIfThenLength] = useState(3);
-  const [showIfThen, setShowIfThen] = useState(true);
+  const [flagsLength, setFlagsLength] = useState(null); // フラグの長さ（設定から読み込む）
+  const [ifThenLength, setIfThenLength] = useState(null);
+  const [showIfThen, setShowIfThen] = useState(false);
 
   useEffect(() => {
     // 設定から routine.flags.length を取得
@@ -32,6 +32,31 @@ export function HabitProvider({ children }) {
       .catch(console.error);
   }, []);
 
+  // 既存配列の長さを優先しつつ、サーバー配列で上書きする
+  const preferExistingLen = (serverArr, prevArr, fallbackLen) => {
+    const isArr = Array.isArray;
+    // 既存があれば長さ優先
+    if (isArr(prevArr)) {
+      if (!isArr(serverArr)) return prevArr.slice();
+      if (serverArr.length >= prevArr.length) return serverArr.slice();
+      // server が短い場合：足りない末尾は既存で埋める
+      const merged = serverArr.slice();
+      for (let i = serverArr.length; i < prevArr.length; i++) {
+        merged.push(!!prevArr[i]);
+      }
+      return merged;
+    }
+    // 既存が無い場合：server があっても「設定長」にパディング/トリムして返す
+    if (isArr(serverArr)) {
+      const base = serverArr.slice(0, fallbackLen);
+      if (base.length < fallbackLen) {
+        base.push(...Array(fallbackLen - base.length).fill(false));
+      }
+      return base;
+    }
+    return Array(fallbackLen).fill(false);
+  };
+
   const toYmd = (d) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -39,12 +64,23 @@ export function HabitProvider({ children }) {
     return `${y}-${m}-${day}`;
   };
 
-  const getRecord = (dateStr) =>
-    routines[dateStr] || {
+  const getRecord = (dateStr) => {
+    const rec = routines[dateStr];
+    if (rec) {
+      return {
+        flags: Array.isArray(rec.flags) ? rec.flags : Array(flagsLength).fill(false),
+        if_then_rules: Array.isArray(rec.if_then_rules)
+          ? rec.if_then_rules
+          : Array(ifThenLength).fill(false),
+        value: typeof rec.value === 'number' ? rec.value : 0
+      };
+    }
+    return {
       flags: Array(flagsLength).fill(false),
       if_then_rules: Array(ifThenLength).fill(false),
       value: 0
     };
+  };
 
   const setLocalValue = (dateStr, v) => {
     setRoutines(prev => ({
@@ -67,8 +103,8 @@ export function HabitProvider({ children }) {
     setRoutines(prev => ({
       ...prev,
       [res.date]: {
-        flags: res.state ?? prev[res.date]?.flags ?? Array(flagsLength).fill(false),
-        if_then_rules: res.if_then_rules ?? prev[res.date]?.if_then_rules ?? Array(ifThenLength).fill(false),
+        flags: preferExistingLen(res.state, prev[res.date]?.flags, flagsLength),
+        if_then_rules: preferExistingLen(res.if_then_rules, prev[res.date]?.if_then_rules, ifThenLength),
         value: res.value
       }
     }));
@@ -84,8 +120,8 @@ export function HabitProvider({ children }) {
     setRoutines(prev => ({
       ...prev,
       [res.date]: {
-        flags: res.state,
-        if_then_rules: res.if_then_rules ?? prev[res.date]?.if_then_rules ?? Array(ifThenLength).fill(false),
+        flags: preferExistingLen(res.state, prev[res.date]?.flags, flagsLength),
+        if_then_rules: preferExistingLen(undefined, prev[res.date]?.if_then_rules, ifThenLength),
         value: res.value
       }
     }));
@@ -107,8 +143,8 @@ export function HabitProvider({ children }) {
     setRoutines(prev => ({
       ...prev,
       [res.date]: {
-        flags: res.state,               // 互換のため flags も返される
-        if_then_rules: res.if_then_rules,
+        flags: preferExistingLen(res.state, prev[res.date]?.flags, flagsLength),
+        if_then_rules: preferExistingLen(res.if_then_rules, prev[res.date]?.if_then_rules, ifThenLength),
         value: res.value
       }
     }));
@@ -188,6 +224,6 @@ export function HabitCell({ date, dayNumberText }) {
 // dateClickでhabit要素クリックを無視するためのヘルパー
 export function isHabitTarget(el) {
   if (!el) return false;
-  const closest = el.closest?.('.habit-row, .habit-input, .habit-box');
+  const closest = el.closest?.('.habit-row, .habit-input, .habit-box, .ifthen-box');
   return !!closest;
 }

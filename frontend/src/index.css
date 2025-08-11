@@ -111,6 +111,14 @@ code {
   box-sizing: border-box;
 }
 
+.ifthen .circle {
+  border-color: var(--ifthen-border, #fa0);
+}
+.ifthen-filled {
+  background-color: var(--ifthen-filled, #fa0);
+}
+
+
 /*************************
  * Taskチェックボックスのスタイル *
  *************************/

@@ -10,10 +10,54 @@ routines_bp = Blueprint('routines', __name__)
 # -----------------------
 BASE_DIR            = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE           = os.path.join(BASE_DIR, '..', '..', '..', 'data', 'routines.json')
+SETTINGS_FILE       = os.path.join(BASE_DIR, '..', '..', '..', 'data', 'settings.json')
 
 DEFAULT_FLAGS_LEN   = 3
 DEFAULT_IFTHEN_LEN  = 3
 DEFAULT_VALUE       = 0  # 0..100
+
+
+# -----------------------
+# Settings Utils
+# -----------------------
+def load_settings():
+    """設定ファイルから現在の設定を読み込む"""
+    try:
+        with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {}
+        return data
+    except:
+        return {}
+
+def get_current_limits():
+    """現在の設定から最大長を取得"""
+    settings = load_settings()
+    routine = settings.get('routine', {})
+    
+    flags_config = routine.get('flags', {})
+    ifthen_config = routine.get('if_then_rules', {})
+    
+    flags_len = flags_config.get('length', DEFAULT_FLAGS_LEN)
+    ifthen_len = ifthen_config.get('length', DEFAULT_IFTHEN_LEN)
+    
+    # 数値として有効な値のみ使用
+    try:
+        flags_len = int(flags_len)
+        if flags_len <= 0:
+            flags_len = DEFAULT_FLAGS_LEN
+    except:
+        flags_len = DEFAULT_FLAGS_LEN
+    
+    try:
+        ifthen_len = int(ifthen_len)
+        if ifthen_len <= 0:
+            ifthen_len = DEFAULT_IFTHEN_LEN
+    except:
+        ifthen_len = DEFAULT_IFTHEN_LEN
+    
+    return flags_len, ifthen_len
 
 
 # -----------------------
@@ -61,28 +105,40 @@ def to_bool_list(x):
 def normalize_for_response(rec):
     """
     レスポンス用に後方互換で正規化する。
-    - list だけが入っている古い形式は flags として扱い、value=DEFAULT_VALUE, if_then_rules=既定長
-    - dict の場合、各フィールドが無ければ既定値を "レスポンス上だけ" 付与（保存はしない）
+    既存データの配列長は保持し、新規データのみ設定長を使用。
     """
+    max_flags_len, max_ifthen_len = get_current_limits()
+    
     if isinstance(rec, list):
+        # 古い形式：listはflagsとして扱い、既存の長さを保持
+        flags = to_bool_list(rec) or make_bools(max_flags_len)
         return {
-            "flags": to_bool_list(rec) or make_bools(DEFAULT_FLAGS_LEN),
-            "if_then_rules": make_bools(DEFAULT_IFTHEN_LEN),
+            "flags": flags,
+            "if_then_rules": make_bools(max_ifthen_len),
             "value": DEFAULT_VALUE,
         }
+    
     if isinstance(rec, dict):
         flags = to_bool_list(rec.get("flags"))
         if_then_rules = to_bool_list(rec.get("if_then_rules"))
         value = rec.get("value", DEFAULT_VALUE)
+        
+        # 既存データがあればそのまま、なければ設定長で作成
+        if flags is None:
+            flags = make_bools(max_flags_len)
+        if if_then_rules is None:
+            if_then_rules = make_bools(max_ifthen_len)
+        
         return {
-            "flags": flags if flags is not None else make_bools(DEFAULT_FLAGS_LEN),
-            "if_then_rules": if_then_rules if if_then_rules is not None else make_bools(DEFAULT_IFTHEN_LEN),
+            "flags": flags,
+            "if_then_rules": if_then_rules,
             "value": value,
         }
-    # それ以外の型は空として扱う
+    
+    # それ以外の型は空として扱う（設定長で新規作成）
     return {
-        "flags": make_bools(DEFAULT_FLAGS_LEN),
-        "if_then_rules": make_bools(DEFAULT_IFTHEN_LEN),
+        "flags": make_bools(max_flags_len),
+        "if_then_rules": make_bools(max_ifthen_len),
         "value": DEFAULT_VALUE,
     }
 
@@ -113,11 +169,10 @@ def get_routines():
 @routines_bp.route('/api/routines/flags', methods=['POST'])
 def update_flags():
     """
-    flags の可変長トグル。
+    flags の制限付きトグル。
     payload: { "date": "YYYY-MM-DD", "index": -1|0|1|... }
-      - index == -1: 現在長で全 False（長さ0なら既定長で生成）
-      - index >= 0 : 範囲外なら False でパディングしてからトグル
-    ※ このエンドポイントでは if_then_rules は保存上は触らない（レスポンスでは既定値を付与）。
+      - index == -1: 既存長で全 False（既存データなしなら設定長）
+      - index >= 0 : 既存データの範囲を超える場合のみ設定長制限を適用
     """
     body = request.get_json(force=True)
     date = body.get('date')
@@ -126,31 +181,39 @@ def update_flags():
     if not isinstance(date, str) or not isinstance(idx, int):
         return jsonify({'error': 'invalid payload'}), 400
 
+    max_flags_len, _ = get_current_limits()
+
     all_data = load_raw()
     rec = all_data.get(date)
 
     # 後方互換：古い list は flags とみなして dict 化
     if rec is None:
-        rec = {"flags": make_bools(DEFAULT_FLAGS_LEN), "value": DEFAULT_VALUE}
+        rec = {"flags": make_bools(max_flags_len), "value": DEFAULT_VALUE}
     elif isinstance(rec, list):
-        rec = {"flags": to_bool_list(rec) or make_bools(DEFAULT_FLAGS_LEN), "value": DEFAULT_VALUE}
+        rec = {"flags": to_bool_list(rec) or make_bools(max_flags_len), "value": DEFAULT_VALUE}
     elif not isinstance(rec, dict):
-        rec = {"flags": make_bools(DEFAULT_FLAGS_LEN), "value": DEFAULT_VALUE}
+        rec = {"flags": make_bools(max_flags_len), "value": DEFAULT_VALUE}
 
     flags = to_bool_list(rec.get("flags")) or []
+    
     if idx == -1:
-        flags = make_bools(len(flags) if len(flags) > 0 else DEFAULT_FLAGS_LEN)
+        # 全クリア：既存の長さを保持（既存データなしなら設定長）
+        current_len = len(flags) if len(flags) > 0 else max_flags_len
+        flags = make_bools(current_len)
     else:
+        # 既存データの範囲内なら拡張
         if idx >= len(flags):
+            # 設定長を超える拡張は制限
+            if idx >= max_flags_len:
+                return jsonify({'error': f'Index {idx} exceeds maximum length {max_flags_len}'}), 400
             flags.extend([False] * (idx + 1 - len(flags)))
         flags[idx] = not flags[idx]
 
     rec["flags"] = flags
-    # ここでは if_then_rules を新規保存しない（過去データは無変更ポリシー）
     all_data[date] = rec
     save_all(all_data)
 
-    # レスポンスでは正規化を返す（保存はしない）
+    # レスポンスでは正規化を返す
     resp_norm = normalize_for_response(rec)
     return jsonify({
         "date": date,
@@ -163,11 +226,10 @@ def update_flags():
 @routines_bp.route('/api/routines/if_then_rules', methods=['POST'])
 def update_if_then_rules():
     """
-    if_then_rules の可変長トグル。
+    if_then_rules の制限付きトグル。
     payload: { "date": "YYYY-MM-DD", "index": -1|0|1|... }
-      - index == -1: 現在長で全 False（長さ0なら既定長で生成）
-      - index >= 0 : 範囲外なら False でパディングしてからトグル
-    ※ このエンドポイントは 'if_then_rules' フィールドをファイルに保存する（明示操作）。
+      - index == -1: 既存長で全 False（既存データなしなら設定長）
+      - index >= 0 : 既存データの範囲を超える場合のみ設定長制限を適用
     """
     body = request.get_json(force=True)
     date = body.get('date')
@@ -176,6 +238,8 @@ def update_if_then_rules():
     if not isinstance(date, str) or not isinstance(idx, int):
         return jsonify({'error': 'invalid payload'}), 400
 
+    _, max_ifthen_len = get_current_limits()
+
     all_data = load_raw()
     rec = all_data.get(date)
 
@@ -183,20 +247,27 @@ def update_if_then_rules():
     if rec is None:
         rec = {"value": DEFAULT_VALUE}
     if isinstance(rec, list):
-        rec = {"flags": to_bool_list(rec) or make_bools(DEFAULT_FLAGS_LEN), "value": DEFAULT_VALUE}
+        max_flags_len, _ = get_current_limits()
+        rec = {"flags": to_bool_list(rec) or make_bools(max_flags_len), "value": DEFAULT_VALUE}
     if not isinstance(rec, dict):
         rec = {"value": DEFAULT_VALUE}
 
     arr = to_bool_list(rec.get("if_then_rules")) or []
+    
     if idx == -1:
-        arr = make_bools(len(arr) if len(arr) > 0 else DEFAULT_IFTHEN_LEN)
+        # 全クリア：既存の長さを保持（既存データなしなら設定長）
+        current_len = len(arr) if len(arr) > 0 else max_ifthen_len
+        arr = make_bools(current_len)
     else:
+        # 既存データの範囲内なら拡張
         if idx >= len(arr):
+            # 設定長を超える拡張は制限
+            if idx >= max_ifthen_len:
+                return jsonify({'error': f'Index {idx} exceeds maximum length {max_ifthen_len}'}), 400
             arr.extend([False] * (idx + 1 - len(arr)))
         arr[idx] = not arr[idx]
 
     rec["if_then_rules"] = arr
-    # flags はこのAPIでは触らない（存在すれば維持、無ければそのまま）
     all_data[date] = rec
     save_all(all_data)
 
@@ -215,7 +286,6 @@ def update_value():
     """
     数値変更用
     payload: { "date": "YYYY-MM-DD", "value": 0..100 }
-    ※ このエンドポイントでは if_then_rules を新規保存しない（過去データは無変更ポリシー）。
     """
     body = request.get_json(force=True)
     date = body.get('date')
@@ -239,12 +309,12 @@ def update_value():
     if rec is None:
         rec = {}
     elif isinstance(rec, list):
-        rec = {"flags": to_bool_list(rec) or make_bools(DEFAULT_FLAGS_LEN), "value": DEFAULT_VALUE}
+        max_flags_len, _ = get_current_limits()
+        rec = {"flags": to_bool_list(rec) or make_bools(max_flags_len), "value": DEFAULT_VALUE}
     elif not isinstance(rec, dict):
         rec = {}
 
     rec["value"] = value
-    # if_then_rules はこのAPIでは追加保存しない
     all_data[date] = rec
     save_all(all_data)
 
