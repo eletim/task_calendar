@@ -4,22 +4,32 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const HabitContext = createContext(null);
 
 export function HabitProvider({ children }) {
-  const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
-  const [flagsLength, setFlagsLength] = useState(null); // フラグの長さ（設定から読み込む）
-  const [ifThenLength, setIfThenLength] = useState(null);
-  const [showIfThen, setShowIfThen] = useState(false);
+  const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number, if_then_rules:[...] } }
+
+  // 設定値（display/length）
+  const [valueDisplay, setValueDisplay] = useState(true);
+  const [flagsDisplay, setFlagsDisplay] = useState(true);
+  const [itrDisplay,   setItrDisplay]   = useState(false);
+
+  const [flagsLength,   setFlagsLength]   = useState(null); // 数が未取得の間は null
+  const [ifThenLength,  setIfThenLength]  = useState(null);
 
   useEffect(() => {
-    // 設定から routine.flags.length を取得
+    // 設定読み込み
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
         const r = data?.routine || {};
+        const v = r.value || {};
         const f = r.flags || {};
         const i = r.if_then_rules || {};
-        if (typeof f.length === 'number' && f.length > 0) setFlagsLength(f.length);
-        if (typeof i.length === 'number' && i.length > 0) setIfThenLength(i.length);
-        if (typeof i.display === 'boolean') setShowIfThen(i.display);
+
+        if (typeof v.display === 'boolean') setValueDisplay(v.display);
+        if (typeof f.display === 'boolean') setFlagsDisplay(f.display);
+        if (typeof i.display === 'boolean') setItrDisplay(i.display);
+
+        if (typeof f.length === 'number' && f.length >= 0) setFlagsLength(f.length);
+        if (typeof i.length === 'number' && i.length >= 0) setIfThenLength(i.length);
       })
       .catch(err => {
         console.warn('settings の読み込みに失敗しました', err);
@@ -32,26 +42,23 @@ export function HabitProvider({ children }) {
       .catch(console.error);
   }, []);
 
+  // 数値ガード（未取得時は 0 扱いで安全に）
+  const safeLen = (n) => (Number.isInteger(n) && n >= 0 ? n : 0);
+
   // 既存配列の長さを優先しつつ、サーバー配列で上書きする
-  const preferExistingLen = (serverArr, prevArr, fallbackLen) => {
+  const preferExistingLen = (serverArr, prevArr, fallbackLenRaw) => {
+    const fallbackLen = safeLen(fallbackLenRaw);
     const isArr = Array.isArray;
-    // 既存があれば長さ優先
     if (isArr(prevArr)) {
       if (!isArr(serverArr)) return prevArr.slice();
       if (serverArr.length >= prevArr.length) return serverArr.slice();
-      // server が短い場合：足りない末尾は既存で埋める
       const merged = serverArr.slice();
-      for (let i = serverArr.length; i < prevArr.length; i++) {
-        merged.push(!!prevArr[i]);
-      }
+      for (let i = serverArr.length; i < prevArr.length; i++) merged.push(!!prevArr[i]);
       return merged;
     }
-    // 既存が無い場合：server があっても「設定長」にパディング/トリムして返す
     if (isArr(serverArr)) {
       const base = serverArr.slice(0, fallbackLen);
-      if (base.length < fallbackLen) {
-        base.push(...Array(fallbackLen - base.length).fill(false));
-      }
+      if (base.length < fallbackLen) base.push(...Array(fallbackLen - base.length).fill(false));
       return base;
     }
     return Array(fallbackLen).fill(false);
@@ -66,28 +73,30 @@ export function HabitProvider({ children }) {
 
   const getRecord = (dateStr) => {
     const rec = routines[dateStr];
+    const fLen  = safeLen(flagsLength);
+    const iLen  = safeLen(ifThenLength);
     if (rec) {
       return {
-        flags: Array.isArray(rec.flags) ? rec.flags : Array(flagsLength).fill(false),
-        if_then_rules: Array.isArray(rec.if_then_rules)
-          ? rec.if_then_rules
-          : Array(ifThenLength).fill(false),
+        flags: Array.isArray(rec.flags) ? rec.flags : Array(fLen).fill(false),
+        if_then_rules: Array.isArray(rec.if_then_rules) ? rec.if_then_rules : Array(iLen).fill(false),
         value: typeof rec.value === 'number' ? rec.value : 0
       };
     }
     return {
-      flags: Array(flagsLength).fill(false),
-      if_then_rules: Array(ifThenLength).fill(false),
+      flags: Array(fLen).fill(false),
+      if_then_rules: Array(iLen).fill(false),
       value: 0
     };
   };
 
   const setLocalValue = (dateStr, v) => {
+    const fLen = safeLen(flagsLength);
+    const iLen = safeLen(ifThenLength);
     setRoutines(prev => ({
       ...prev,
       [dateStr]: {
-        flags: prev[dateStr]?.flags || Array(flagsLength).fill(false),
-        if_then_rules: prev[dateStr]?.if_then_rules || Array(ifThenLength).fill(false),
+        flags: prev[dateStr]?.flags || Array(fLen).fill(false),
+        if_then_rules: prev[dateStr]?.if_then_rules || Array(iLen).fill(false),
         value: v
       }
     }));
@@ -158,7 +167,20 @@ export function HabitProvider({ children }) {
   };
 
   return (
-    <HabitContext.Provider value={{ toYmd, getRecord, setLocalValue, postValue, cycleFill, cycleIfThen, showIfThen }}>
+    <HabitContext.Provider
+      value={{
+        toYmd,
+        getRecord,
+        setLocalValue,
+        postValue,
+        cycleFill,
+        cycleIfThen,
+        // display フラグも公開
+        valueDisplay,
+        flagsDisplay,
+        itrDisplay,
+      }}
+    >
       {children}
     </HabitContext.Provider>
   );
@@ -171,7 +193,11 @@ function useHabit() {
 }
 
 export function HabitCell({ date, dayNumberText }) {
-  const { toYmd, getRecord, setLocalValue, postValue, cycleFill, cycleIfThen, showIfThen } = useHabit();
+  const {
+    toYmd, getRecord, setLocalValue, postValue, cycleFill, cycleIfThen,
+    valueDisplay, flagsDisplay, itrDisplay
+  } = useHabit();
+
   const dateStr = toYmd(date);
   const rec = getRecord(dateStr);
   const arr = rec.flags;
@@ -184,30 +210,39 @@ export function HabitCell({ date, dayNumberText }) {
         <span className="fc-daygrid-day-number">{dayNumberText}</span>
       </div>
       <div className="habit-row" onClick={(e) => e.stopPropagation()}>
-        <input
-          className="habit-input"
-          type="number"
-          min={0}
-          max={100}
-          value={val}
-          onMouseDown={(e) => e.stopPropagation()}
-          onChange={(e) => {
-            const v = e.target.value === ''
-              ? ''
-              : Math.min(100, Math.max(0, Number(e.target.value)));
-            setLocalValue(dateStr, v);
-          }}
-          onBlur={(e) => postValue(dateStr, e.target.value === '' ? 0 : Number(e.target.value))}
-          onClick={(e) => e.stopPropagation()}
-        />
-        <div className="habit-box" onClick={(e) => { e.stopPropagation(); cycleFill(dateStr); }}>
-          <div className="habit-circles">
-            {arr.map((on, i) => (
-              <span key={i} className={on ? 'circle filled' : 'circle'} />
-            ))}
+        {/* value（数値入力） */}
+        {valueDisplay && (
+          <input
+            className="habit-input"
+            type="number"
+            min={0}
+            max={100}
+            value={val}
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const v = e.target.value === ''
+                ? ''
+                : Math.min(100, Math.max(0, Number(e.target.value)));
+              setLocalValue(dateStr, v);
+            }}
+            onBlur={(e) => postValue(dateStr, e.target.value === '' ? 0 : Number(e.target.value))}
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
+
+        {/* flags（丸） */}
+        {flagsDisplay && (
+          <div className="habit-box" onClick={(e) => { e.stopPropagation(); cycleFill(dateStr); }}>
+            <div className="habit-circles">
+              {arr.map((on, i) => (
+                <span key={i} className={on ? 'circle filled' : 'circle'} />
+              ))}
+            </div>
           </div>
-        </div>
-        {showIfThen && (
+        )}
+
+        {/* if-then（丸） */}
+        {itrDisplay && (
           <div className="habit-box ifthen-box" onClick={e => { e.stopPropagation(); cycleIfThen(dateStr); }}>
             <div className="habit-circles ifthen-circles">
               {ifThenArr.map((on, i) => (
