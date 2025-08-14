@@ -1,6 +1,6 @@
 /* frontend/src/index.css */
 
-/* ライトモード用変数 */
+/* ── テーマ変数 ─────────────────────────────────── */
 :root {
   --bg: #ffffff;
   --text: #222222;
@@ -19,7 +19,6 @@
   --swatch-select: #000;
 }
 
-/* ダークモード用変数 */
 body[data-theme="dark"] {
   --bg: #121212;
   --text: #e0e0e0;
@@ -38,28 +37,22 @@ body[data-theme="dark"] {
   --swatch-select: #e0e0e0;
 }
 
-/* ── ベーススタイル ─────────────────────────────────── */
-
+/* ── ベース ─────────────────────────────────── */
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg);
   color: var(--text);
 }
-
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/****************************
- * Routineチェックボックスのスタイル
- ****************************/
-
-/* 四角いボックス全体 */
+/* ── Habit（ルーチン） ─────────────────────────── */
 .habit-box {
   display: inline-flex;
   align-items: center;
@@ -69,354 +62,74 @@ code {
   padding: 4px 6px;
   cursor: pointer;
 }
-
-/* ○を並べるコンテナ */
-.habit-circles {
-  display: flex;
-  gap: 4px;
-}
-
-/* ○のベース（未チェック） */
+.habit-circles { display: flex; gap: 4px; }
 .circle {
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  min-height: 12px;
+  width: 12px; height: 12px; min-width: 12px; min-height: 12px;
   border: 1px solid var(--habit-border);
   border-radius: 50%;
   background-color: var(--circle-bg);
   transition: background-color 0.2s ease;
 }
-
-/* ○がチェックされたとき */
-.circle.filled {
-  background-color: var(--habit-filled);
-}
-
-/* 1行に並べるラッパー */
-.habit-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-/* 数値入力欄 */
+.circle.filled { background-color: var(--habit-filled); }
+.habit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
 .habit-input {
-  width: 38px;
-  font-size: 0.65rem;
-  padding: 0 2px;
-  line-height: 1.2;
-  box-sizing: border-box;
+  width: 38px; font-size: 0.65rem; padding: 0 2px; line-height: 1.2; box-sizing: border-box;
 }
+.ifthen .circle { border-color: var(--ifthen-border, #fa0); }
+.ifthen-filled { background-color: var(--ifthen-filled, #fa0); }
 
-.ifthen .circle {
-  border-color: var(--ifthen-border, #fa0);
-}
-.ifthen-filled {
-  background-color: var(--ifthen-filled, #fa0);
-}
+/* ── カレンダー側 共通（イベント/フォーム） ───────────────── */
+.task-item input[type="checkbox"] { cursor: pointer; }
+.task-item { display: flex; align-items: center; gap: 4px; }
+.task-item.done span { text-decoration: line-through; }
 
+/* ── 全体レイアウト（カレンダー主体） ───────────────────── */
+.app-container { display: flex; gap: 20px; width: 52%; margin: 40px auto; padding: 0 10px; }
+.calendar-container { flex: 0 0 80%; }
+.calendar-title { text-align: center; }
 
-/*************************
- * Taskチェックボックスのスタイル *
- *************************/
-
-.task-item input[type="checkbox"] {
-  cursor: pointer;
-}
-
-/* ─── 全体レイアウト ───────────────────────────────── */
-.app-container {
-  display: flex;
-  gap: 20px;
-  width: 52%;
-  margin: 40px auto;
-  padding: 0 10px;
-}
-
-/* カレンダー領域は幅広めに */
-.calendar-container {
-  flex: 0 0 80%;
-}
-.calendar-title {
-  text-align: center;
-}
-
-/* ─── 右側サイドバー ───────────────────────────────── */
-.sidebar {
-  flex: 0 0 20%;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background-color: var(--sidebar-bg);
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.sidebar h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 4px;
-}
-
-.sidebar ul {
-  list-style: disc inside;
-  margin: 8px 0 0;
-  padding: 0;
-}
-
-.sidebar li {
-  margin-bottom: 6px;
-}
-
-/* ─── フォーム共通 ───────────────────────────────── */
-.form-inline {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
+/* カレンダー上のインライン編集フォーム（ヘッダ下の赤帯など） */
+.form-inline { display: flex; gap: 8px; align-items: center; }
 .edit-form {
-  padding: 10px;
-  margin-bottom: 20px;
-  border: 1px solid var(--error-border);
-  border-radius: 4px;
-  background: var(--error-bg);
+  padding: 10px; margin-bottom: 20px; border: 1px solid var(--error-border);
+  border-radius: 4px; background: var(--error-bg);
 }
 
-.add-form {
-  padding: 10px;
-  margin-bottom: 20px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--sidebar-bg);
-}
-
-/* ─── タスクアイテム ───────────────────────────────── */
-.task-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.task-item.done span {
-  text-decoration: line-through;
-}
-
-/* サイドバーのタスクカード風スタイル */
-.sidebar-task-list {
-  list-style: none !important;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar-task-item {
-  margin-bottom: 6px;
-}
-
-.sidebar-task-content {
-  background-color: var(--primary);
-  border: 1px solid var(--primary-hover);
-  color: #ffffff !important;
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.sidebar-task-content:hover {
-  background-color: var(--primary-hover);
-}
-
-/* 編集フォーム＋ボタンのレイアウト改善 */
-.sidebar-form,
-.sidebar-edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.sidebar-form input,
-.sidebar-edit-form input {
-  width: 100%;
-  padding: 4px 8px;
-  font-size: 0.9rem;
-  box-sizing: border-box;
-}
-
-.sidebar-button-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.sidebar-button-group button {
-  flex: 1 1 calc(50% - 4px);
-  padding: 4px 6px;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-/* ─── カラー選択スウォッチ ─────────────────────────── */
-.color-picker {
-  display: flex;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.color-swatch {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 2px solid transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.color-swatch.selected {
-  border-color: var(--swatch-select);
-}
-
-/* ─── FullCalendar のカスタム調整 ───────────────────── */
-/* 週／日／カスタム７日ビューのセル高 */
+/* ── FullCalendar 調整 ─────────────────────────── */
 .fc-dayGridWeek-view .fc-daygrid-day-frame,
 .fc-dayGridDay-view .fc-daygrid-day-frame,
-.fc-weekCentered-view .fc-daygrid-day-frame {
-  min-height: 250px !important;
-}
-/* イベントエリアの高さ */
+.fc-weekCentered-view .fc-daygrid-day-frame { min-height: 250px !important; }
 .fc-dayGridWeek-view .fc-daygrid-day-events,
 .fc-dayGridDay-view .fc-daygrid-day-events,
-.fc-weekCentered-view .fc-daygrid-day-events {
-  min-height: 200px !important;
-}
-/* 月ビューは元のまま */
+.fc-weekCentered-view .fc-daygrid-day-events { min-height: 200px !important; }
 .fc-dayGridMonth-view .fc-daygrid-day-frame {
-  min-height: auto !important;
-  background-color: transparent !important;
+  min-height: auto !important; background-color: transparent !important;
 }
-/* 土日ヘッダー・日付カラー */
 .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion,
-.fc-daygrid-day.fc-day-sat .fc-daygrid-day-top .fc-daygrid-day-number {
-  color: var(--sat-color) !important;
-}
+.fc-daygrid-day.fc-day-sat .fc-daygrid-day-top .fc-daygrid-day-number { color: var(--sat-color) !important; }
 .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion,
-.fc-daygrid-day.fc-day-sun .fc-daygrid-day-top .fc-daygrid-day-number {
-  color: var(--sun-color) !important;
-}
+.fc-daygrid-day.fc-day-sun .fc-daygrid-day-top .fc-daygrid-day-number { color: var(--sun-color) !important; }
 
-/* ── カレンダー上のタスクタイトルを常に折り返し表示 ───────────────────── */
+/* タスクタイトルを常に折り返し */
 .fc-daygrid-event .task-item span {
-  /* 既存の nowrap／ellipsis 設定を上書き */
-  white-space: normal !important;   /* 折り返しを常に許可 */
-  word-break: break-word;           /* 単語内でも改行 */
-  overflow-wrap: anywhere;          /* 長い文字列も折り返し */
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
-
-/* ── イベントコンテナをFlex化してgapを指定 ───────────────── */
+/* イベントリストを縦方向に整列 */
 .fc-daygrid-day-events {
-  display: flex;              /* 子要素を縦並びFlexに */
-  flex-direction: column;
-  gap: 2px;                   /* 子要素間の隙間を2pxに */
+  display: flex; flex-direction: column; gap: 2px;
 }
 
-.sidebar-task-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.drag-handle {
-  display: flex;
-  align-items: center;
-  padding: 4px;
-  cursor: grab;
-  color: #666;
-  flex-shrink: 0;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-.sidebar-task-content {
-  flex: 1;
-  /* 既存のスタイル */
-}
-
+/* ── レスポンシブ ─────────────────────────── */
 @media (max-width: 600px) {
-  /* ── 日セル内イベント領域の横スクロール防止 ───────────────────────── */
-  .fc-daygrid-day-frame .fc-daygrid-day-events {
-    overflow-x: hidden;      /* 横にはみ出したら切り捨て */
-  }
-
-  /* ── FullCalendar のイベント要素幅をセル幅内に収める ─────────────────── */
-  .fc-daygrid-event {
-    box-sizing: border-box;  /* padding を含めて幅計算 */
-    max-width: 100%;         /* 親コンテナ幅を超えない */
-  }
-
-  /* ── カスタムした .task-item（Flex）にも幅制限を ───────────────────── */
-  .task-item {
-    width: 100%;             /* 親要素いっぱいに */
-    box-sizing: border-box;  /* パディング込みで100% */
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  /* ルーチン行の折り返しと余白拡大 */
-  .habit-row {
-    flex-wrap: wrap;     /* 折り返し許可 */
-    gap: 8px;            /* アイテム間隔を広く */
-  }
-
-  /* 数値入力欄を幅50%にしてタップしやすく */
-  .habit-input {
-    width: 50%;          /* 入力欄をセル幅の半分に */
-    min-width: 48px;     /* 極端に狭くならないよう最低幅を確保 */
-    font-size: 1rem;
-    padding: 6px 8px;
-    box-sizing: border-box;
-  }
-
-  /* ○ボックスを折り返し可能に */
-  .habit-box {
-    flex: 0 0 40%;       /* セル幅の40%を確保 */
-    padding: 8px 12px;
-  }
-
-  /* サイドバー以下は既存の調整のまま…… */
-  .app-container {
-    flex-direction: column;
-    width: 100%;
-    margin: 20px auto;
-    padding: 0 8px;
-  }
-  .calendar-container {
-    flex: 0 0 100%;
-    width: 100%;
-  }
-  .sidebar {
-    flex: 0 0 100%;
-    width: 100%;
-    margin-top: 16px;
-    padding: 12px;
-    font-size: 1rem;
-  }  
-  .sidebar-button-group {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .sidebar-form input,
-  .sidebar-edit-form input {
-    padding: 8px 12px;
-    font-size: 1rem;
-  }
+  .fc-daygrid-day-frame .fc-daygrid-day-events { overflow-x: hidden; }
+  .fc-daygrid-event { box-sizing: border-box; max-width: 100%; }
+  .task-item { width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 4px; }
+  .habit-row { flex-wrap: wrap; gap: 8px; }
+  .habit-input { width: 50%; min-width: 48px; font-size: 1rem; padding: 6px 8px; box-sizing: border-box; }
+  .habit-box { flex: 0 0 40%; padding: 8px 12px; }
+  .app-container { flex-direction: column; width: 100%; margin: 20px auto; padding: 0 8px; }
+  .calendar-container { flex: 0 0 100%; width: 100%; }
 }

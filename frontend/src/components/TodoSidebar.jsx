@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Draggable } from '@fullcalendar/interaction';
+import './TodoSidebar.css';
 
 // --- SortableItem は変更なし ---
 function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
