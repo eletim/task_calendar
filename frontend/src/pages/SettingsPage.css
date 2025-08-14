@@ -7,6 +7,16 @@
   align-items: start;
 }
 
+.settings-page .header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-page .muted {
+  font-size: 12px;
+  opacity: .7;
+}
+
 @media (max-width: 900px) {
   .settings-page .settings-layout {
     grid-template-columns: 1fr;    /* スマホでは縦積み */

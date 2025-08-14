@@ -1,7 +1,9 @@
 // src/pages/SettingsPage.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import './SettingsPage.css'; // ← 追加
+import './SettingsPage.css';
+import ThemeToggle from '../components/ThemeToggle';
+import { useTheme } from '../contexts/ThemeContext';
 
 function SettingsPreview({
   valueDisplay,
@@ -10,7 +12,6 @@ function SettingsPreview({
   flagsLength,
   ifThenLength
 }) {
-  // ダミーのプレビュー用データ
   const today = new Date();
   const dayNumberText = String(today.getDate());
   const flags = Array.from({ length: Math.max(0, flagsLength) }, (_, i) => i < Math.ceil(flagsLength / 2));
@@ -57,27 +58,33 @@ function SettingsPreview({
           )}
         </div>
       </div>
-      <div className="preview-hint">設定を変更するとここに即時反映されます</div>
+      <div className="preview-hint">設定を変更するとここに即時反映・自動保存されます</div>
     </div>
   );
 }
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
-  const [saved,   setSaved]   = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [savedAt, setSavedAt] = useState(0); // 成功時刻（トースト用）
 
-  // 設定値
-  const [theme, setTheme]                 = useState('default'); // 'light' | 'dark' | 'default'
-  // display
-  const [valueDisplay, setValueDisplay]   = useState(true);
-  const [flagsDisplay, setFlagsDisplay]   = useState(true);
-  const [itrDisplay,   setItrDisplay]     = useState(true); // if_then_rules.display
-  // length
-  const [flagsLength, setFlagsLength]     = useState(3);
-  const [ifThenLength, setIfThenLength]   = useState(1);
+  // ThemeContext
+  const { theme: currentTheme, toggleTheme } = useTheme(); // 'light' | 'dark'
 
+  // 設定（保存候補）
+  const [prefTheme, setPrefTheme]           = useState('default'); // 'default' | 'light' | 'dark'
+  const [valueDisplay, setValueDisplay]     = useState(true);
+  const [flagsDisplay, setFlagsDisplay]     = useState(true);
+  const [itrDisplay,   setItrDisplay]       = useState(true);
+  const [flagsLength,  setFlagsLength]      = useState(3);
+  const [ifThenLength, setIfThenLength]     = useState(1);
+
+  // 初回ロード完了フラグ & 直近送信済みペイロード
+  const readyRef = useRef(false);
+  const lastSentRef = useRef('');
+
+  // 初期読み込み
   useEffect(() => {
     (async () => {
       try {
@@ -85,7 +92,12 @@ export default function SettingsPage() {
         if (!res.ok) throw new Error();
         const data = await res.json();
 
-        if (data?.theme) setTheme(data.theme);
+        const savedTheme = data?.theme ?? 'default';
+        setPrefTheme(savedTheme);
+
+        // 表示テーマを保存値に必要時のみ合わせる
+        if (savedTheme === 'light' && currentTheme !== 'light') toggleTheme();
+        if (savedTheme === 'dark'  && currentTheme !== 'dark')  toggleTheme();
 
         const r = data?.routine ?? {};
         const v = r.value ?? {};
@@ -102,40 +114,64 @@ export default function SettingsPage() {
         setError('設定の読み込みに失敗しました');
       } finally {
         setLoading(false);
+        readyRef.current = true; // ここから自動保存を有効化
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setSaved(false);
-    setError('');
-
-    try {
-      const payload = {
-        theme,
-        routine: {
-          value: { display: Boolean(valueDisplay) },
-          flags: { display: Boolean(flagsDisplay), length: Number(flagsLength) },
-          if_then_rules: { display: Boolean(itrDisplay), length: Number(ifThenLength) },
-        },
-      };
-
-      const res = await fetch('/api/settings', {
-        method: 'POST', // サーバ側が POST/PUT 両対応ならどちらでもOK
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error();
-
-      setSaved(true);
-    } catch {
-      setError('保存に失敗しました');
-    } finally {
-      setSaving(false);
+  // 固定モード中は ThemeToggle 操作に追従して保存候補も更新
+  useEffect(() => {
+    if (prefTheme !== 'default' && currentTheme !== prefTheme) {
+      setPrefTheme(currentTheme);
     }
-  };
+  }, [currentTheme, prefTheme]);
+
+  // 送信するペイロードをメモ化
+  const payload = useMemo(() => ({
+    theme: prefTheme,
+    routine: {
+      value: { display: Boolean(valueDisplay) },
+      flags: { display: Boolean(flagsDisplay), length: Number(flagsLength) },
+      if_then_rules: { display: Boolean(itrDisplay), length: Number(ifThenLength) },
+    },
+  }), [prefTheme, valueDisplay, flagsDisplay, itrDisplay, flagsLength, ifThenLength]);
+
+  // 変更を自動保存（500msデバウンス）
+  useEffect(() => {
+    if (!readyRef.current) return; // 初期ロード中は送らない
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const json = JSON.stringify(payload);
+      if (json === lastSentRef.current) return; // 同一内容は送らない
+
+      try {
+        setSaving(true);
+        setError('');
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: json,
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('保存に失敗しました');
+        lastSentRef.current = json;
+        setSavedAt(Date.now());
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          setError('保存に失敗しました');
+        }
+      } finally {
+        setSaving(false);
+      }
+    }, 500);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [payload]);
 
   if (loading) return <div className="settings-page"><p>読み込み中…</p></div>;
 
@@ -143,10 +179,14 @@ export default function SettingsPage() {
     <div className="settings-page">
       <div className="header">
         <h1 className="calendar-title">設定</h1>
-        <Link to="/" className="icon-btn" aria-label="カレンダーに戻る" title="戻る">←</Link>
+        <div className="header-right">
+          {/* 保存状態の軽いインジケータ */}
+          {saving && <span className="muted">保存中…</span>}
+          {!saving && savedAt > 0 && <span className="muted">保存しました</span>}
+          <Link to="/" className="icon-btn" aria-label="カレンダーに戻る" title="戻る">←</Link>
+        </div>
       </div>
 
-      {/* ← 2カラムレイアウト：左プレビュー／右フォーム */}
       <div className="settings-layout">
         <aside className="preview-pane">
           <SettingsPreview
@@ -159,89 +199,117 @@ export default function SettingsPage() {
         </aside>
 
         <section className="form-pane">
-          <form onSubmit={handleSubmit} className="settings-form">
-            {error && <div className="error">{error}</div>}
-            {saved && !error && <div className="success">保存しました</div>}
+          {error && <div className="error">{error}</div>}
 
-            <fieldset>
-              <legend>テーマ</legend>
+          {/* ===== テーマ設定（ThemeToggle連携・即時保存） ===== */}
+          <fieldset className="settings-form">
+            <legend>テーマ</legend>
+
+            {/* モード選択 */}
+            <div className="settings-group">
               <label className="row">
-                <span>テーマモード</span>
-                <select value={theme} onChange={(e) => setTheme(e.target.value)}>
-                  <option value="default">システムに追従</option>
-                  <option value="light">ライト</option>
-                  <option value="dark">ダーク</option>
-                </select>
+                <span>モード</span>
+                <div>
+                  <label style={{ marginRight: 12 }}>
+                    <input
+                      type="radio"
+                      name="themeMode"
+                      value="default"
+                      checked={prefTheme === 'default'}
+                      onChange={() => setPrefTheme('default')}
+                    />
+                    システムに追従
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="themeMode"
+                      value={currentTheme}
+                      checked={prefTheme !== 'default'}
+                      onChange={() => setPrefTheme(currentTheme)}
+                    />
+                    固定（下のトグルで指定）
+                  </label>
+                </div>
               </label>
-            </fieldset>
-
-            <fieldset>
-              <legend>習慣トラッカー</legend>
-
-              {/* value */}
-              <div className="settings-group">
-                <label className="row">
-                  <span>Value を表示</span>
-                  <input
-                    type="checkbox"
-                    checked={valueDisplay}
-                    onChange={(e) => setValueDisplay(e.target.checked)}
-                  />
-                </label>
-              </div>
-
-              {/* flags */}
-              <div className="settings-group">
-                <label className="row">
-                  <span>Flags を表示</span>
-                  <input
-                    type="checkbox"
-                    checked={flagsDisplay}
-                    onChange={(e) => setFlagsDisplay(e.target.checked)}
-                  />
-                </label>
-                <label className="row">
-                  <span>フラグ数</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={12}
-                    value={flagsLength}
-                    onChange={(e) => setFlagsLength(Number(e.target.value))}
-                  />
-                </label>
-              </div>
-
-              {/* if_then_rules */}
-              <div className="settings-group">
-                <label className="row">
-                  <span>If-Then を表示</span>
-                  <input
-                    type="checkbox"
-                    checked={itrDisplay}
-                    onChange={(e) => setItrDisplay(e.target.checked)}
-                  />
-                </label>
-                <label className="row">
-                  <span>If-Then ルール数</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={12}
-                    value={ifThenLength}
-                    onChange={(e) => setIfThenLength(Number(e.target.value))}
-                  />
-                </label>
-              </div>
-            </fieldset>
-
-            <div className="actions">
-              <button type="submit" disabled={saving}>
-                {saving ? '保存中…' : '保存'}
-              </button>
-              <Link to="/" className="btn-link">キャンセル</Link>
             </div>
-          </form>
+
+            {/* 固定時だけ ThemeToggle を表示 */}
+            {prefTheme !== 'default' && (
+              <div className="settings-group">
+                <label className="row">
+                  <span>固定テーマ</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <ThemeToggle />
+                    <span className="muted">
+                      現在の表示: <strong>{currentTheme}</strong>（この値を保存）
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
+          </fieldset>
+
+          {/* ===== 習慣トラッカー（即時保存） ===== */}
+          <fieldset className="settings-form">
+            <legend>習慣トラッカー</legend>
+
+            {/* value */}
+            <div className="settings-group">
+              <label className="row">
+                <span>Value を表示</span>
+                <input
+                  type="checkbox"
+                  checked={valueDisplay}
+                  onChange={(e) => setValueDisplay(e.target.checked)}
+                />
+              </label>
+            </div>
+
+            {/* flags */}
+            <div className="settings-group">
+              <label className="row">
+                <span>Flags を表示</span>
+                <input
+                  type="checkbox"
+                  checked={flagsDisplay}
+                  onChange={(e) => setFlagsDisplay(e.target.checked)}
+                />
+              </label>
+              <label className="row">
+                <span>フラグ数</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  value={flagsLength}
+                  onChange={(e) => setFlagsLength(Number(e.target.value))}
+                />
+              </label>
+            </div>
+
+            {/* if_then_rules */}
+            <div className="settings-group">
+              <label className="row">
+                <span>If-Then を表示</span>
+                <input
+                  type="checkbox"
+                  checked={itrDisplay}
+                  onChange={(e) => setItrDisplay(e.target.checked)}
+                />
+              </label>
+              <label className="row">
+                <span>If-Then ルール数</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  value={ifThenLength}
+                  onChange={(e) => setIfThenLength(Number(e.target.value))}
+                />
+              </label>
+            </div>
+          </fieldset>
         </section>
       </div>
     </div>
