@@ -1,6 +1,7 @@
 // src/pages/SettingsPage.jsx
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import './SettingsPage.css'; // ← 追加
 
 function SettingsPreview({
   valueDisplay,
