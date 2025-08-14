@@ -7,6 +7,9 @@ import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
+import SettingsPage from './pages/SettingsPage';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
 import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
@@ -145,7 +148,12 @@ function InnerApp() {
       <div className="calendar-container">
         <div className="header">
           <h1 className="calendar-title">タスクカレンダーv0.1</h1>
-          <ThemeToggle />
+          <div className="header-actions">
+            <ThemeToggle />
+            <Link to="/settings" className="icon-btn" aria-label="設定を開く" title="設定">
+              <Settings size={18} />
+            </Link>
+          </div>
         </div>
 
         {editingEvent && (
@@ -246,7 +254,12 @@ function InnerApp() {
 export default function App() {
   return (
     <ThemeProvider>
-      <InnerApp />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<InnerApp />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }

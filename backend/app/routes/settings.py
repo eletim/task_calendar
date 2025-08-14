@@ -1,3 +1,4 @@
+# backend/settings.py など（元の settings_bp を定義していたファイル）
 from flask import Blueprint, jsonify, request
 import os
 import json
@@ -5,16 +6,14 @@ import json
 # Blueprint for calendar settings
 settings_bp = Blueprint('settings', __name__)
 
-# Determine the path to the settings data file. We store settings in a
-# JSON file alongside routines.json in the project’s data directory.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, '..', '..', '..', 'data', 'settings.json')
 
-# Default values for all settings. These values are used only when
-# a setting is missing from the file; we do not write defaults back
-# to the file unless the settings are explicitly updated via the API.
+# --- 変更点 ---
+# 1) デフォルト構造を要求どおりに更新（if_then_rules.length を 1 に）
+# 2) display を正式採用（元から存在） / show は廃止
 DEFAULT_SETTINGS = {
-    "theme": "default",  # possible values: "default", "dark", "light"
+    "theme": "default",  # "default" | "dark" | "light"
     "routine": {
         "value": {
             "display": True,
@@ -27,7 +26,7 @@ DEFAULT_SETTINGS = {
         },
         "if_then_rules": {
             "display": True,
-            "length": 3,
+            "length": 1,   # ★ デフォルトを 1 に変更
             "description": ""
         }
     }
@@ -42,92 +41,178 @@ def ensure_file():
             json.dump(DEFAULT_SETTINGS, f, ensure_ascii=False, indent=2)
 
 
+def _deepcopy(obj):
+    return json.loads(json.dumps(obj))
+
+
+def _merge_defaults(default, current):
+    """
+    default をベースに current の値を優先して再帰的にマージ。
+    current に余計なキーがあればそれも残す（後方互換のため）。
+    """
+    result = {}
+    for key, def_val in default.items():
+        if key in current:
+            cur_val = current[key]
+            if isinstance(def_val, dict) and isinstance(cur_val, dict):
+                result[key] = _merge_defaults(def_val, cur_val)
+            else:
+                result[key] = cur_val
+        else:
+            result[key] = _deepcopy(def_val) if isinstance(def_val, dict) else def_val
+    # current 側の追加キーも維持
+    for key, val in current.items():
+        if key not in result:
+            result[key] = val
+    return result
+
+
+def _migrate_legacy_keys(data):
+    """
+    既存ファイルに残っている廃止キー 'show' を 'display' に移行し、'show' を削除。
+    必要に応じて型の正規化も行う。
+    """
+    if not isinstance(data, dict):
+        return data
+
+    routine = data.get("routine")
+    if isinstance(routine, dict):
+        # if_then_rules の show -> display
+        itr = routine.get("if_then_rules")
+        if isinstance(itr, dict):
+            # show を display に移行（display が未指定なら show の値を使う）
+            if "show" in itr and "display" not in itr:
+                itr["display"] = bool(itr["show"])
+            itr.pop("show", None)
+
+        # flags / value 側は特に移行不要だが、念のため display を bool 正規化
+        flg = routine.get("flags")
+        if isinstance(flg, dict) and "display" in flg:
+            flg["display"] = bool(flg["display"])
+        val = routine.get("value")
+        if isinstance(val, dict) and "display" in val:
+            val["display"] = bool(val["display"])
+
+    return data
+
+
+def _normalize_types(data):
+    """
+    値の型を正規化する（length は int、display は bool、theme は既知値に丸めるなど）
+    """
+    if not isinstance(data, dict):
+        return data
+
+    # theme
+    theme = data.get("theme")
+    if theme not in ("default", "dark", "light"):
+        data["theme"] = "default"
+
+    routine = data.get("routine")
+    if isinstance(routine, dict):
+        # value.display
+        value = routine.get("value")
+        if isinstance(value, dict):
+            value["display"] = bool(value.get("display", True))
+            # description は文字列化
+            desc = value.get("description", "")
+            value["description"] = str(desc) if desc is not None else ""
+
+        # flags
+        flags = routine.get("flags")
+        if isinstance(flags, dict):
+            flags["display"] = bool(flags.get("display", True))
+            # length
+            try:
+                length = int(flags.get("length", 3))
+            except Exception:
+                length = 3
+            # 極端な値のガード（必要なら調整）
+            if length < 0: length = 0
+            if length > 12: length = 12
+            flags["length"] = length
+            # description
+            desc = flags.get("description", "")
+            flags["description"] = str(desc) if desc is not None else ""
+
+        # if_then_rules
+        itr = routine.get("if_then_rules")
+        if isinstance(itr, dict):
+            itr["display"] = bool(itr.get("display", True))
+            # length
+            try:
+                length = int(itr.get("length", 1))
+            except Exception:
+                length = 1
+            if length < 0: length = 0
+            if length > 12: length = 12
+            itr["length"] = length
+            # description
+            desc = itr.get("description", "")
+            itr["description"] = str(desc) if desc is not None else ""
+
+    return data
+
+
 def load_settings():
-    """
-    Load the current settings from the JSON file. If the file is malformed or
-    missing, return a copy of DEFAULT_SETTINGS.
-    """
+    """JSON を読み込み、デフォルト補完 → レガシー移行 → 型正規化して返す。"""
     ensure_file()
     try:
         with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            # If the file contains something unexpected, ignore it
-            return DEFAULT_SETTINGS.copy()
-        # Merge any missing default keys into the loaded settings without
-        # mutating the original structure.
-        def merge_defaults(default, current):
-            result = {}
-            for key, default_value in default.items():
-                if key in current:
-                    if isinstance(default_value, dict) and isinstance(current[key], dict):
-                        result[key] = merge_defaults(default_value, current[key])
-                    else:
-                        result[key] = current[key]
-                else:
-                    # use default if missing
-                    if isinstance(default_value, dict):
-                        result[key] = json.loads(json.dumps(default_value))
-                    else:
-                        result[key] = default_value
-            # include any extra keys present in current
-            for key, value in current.items():
-                if key not in result:
-                    result[key] = value
-            return result
-        return merge_defaults(DEFAULT_SETTINGS, data)
+            raw = json.load(f)
+        if not isinstance(raw, dict):
+            return _deepcopy(DEFAULT_SETTINGS)
+
+        merged = _merge_defaults(DEFAULT_SETTINGS, raw)
+        migrated = _migrate_legacy_keys(merged)
+        normalized = _normalize_types(migrated)
+        return normalized
     except Exception:
-        # On any read error, fall back to defaults
-        return DEFAULT_SETTINGS.copy()
+        return _deepcopy(DEFAULT_SETTINGS)
 
 
 def save_settings(data):
-    """Persist the given settings dictionary to the JSON file."""
+    """保存前に最終正規化してから保存。"""
     os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+    data = _normalize_types(_migrate_legacy_keys(_merge_defaults(DEFAULT_SETTINGS, data)))
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 @settings_bp.route('/api/settings', methods=['GET'])
 def get_settings():
-    """Retrieve the current calendar settings."""
     return jsonify(load_settings())
 
 
-@settings_bp.route('/api/settings', methods=['POST'])
+@settings_bp.route('/api/settings', methods=['POST', 'PUT'])  # ← PUT も受けられるように
 def update_settings():
     """
-    Update the calendar settings. The request body should be a JSON object. Keys
-    provided in the payload are merged into the existing settings; missing keys
-    are left unchanged. The updated settings are saved and returned.
-    Example payload:
-        {
-            "theme": "dark",
-            "routine": {
-                "value": {
-                    "display": false,
-                    "description": "Percentage of completion"
-                },
-                "flags": {
-                    "length": 4
-                }
-            }
+    受け取った JSON を現在設定にマージ。'show' が来ても display に移行して保存。
+    例:
+      {
+        "theme": "dark",
+        "routine": {
+          "value": { "display": true },
+          "flags": { "length": 4, "display": false },
+          "if_then_rules": { "length": 2, "display": true }
         }
+      }
     """
     body = request.get_json(force=True) or {}
     if not isinstance(body, dict):
         return jsonify({'error': 'Invalid payload format'}), 400
+
     current = load_settings()
 
-    # Recursively merge the body into the current settings
     def recursive_update(original, updates):
-        for key, value in updates.items():
-            if isinstance(value, dict) and isinstance(original.get(key), dict):
-                original[key] = recursive_update(original[key], value)
+        for key, val in updates.items():
+            if isinstance(val, dict) and isinstance(original.get(key), dict):
+                original[key] = recursive_update(original[key], val)
             else:
-                original[key] = value
+                original[key] = val
         return original
 
-    updated = recursive_update(current, body)
+    updated = recursive_update(_deepcopy(current), body)
+    # レガシー -> 正規化 -> 保存
     save_settings(updated)
-    return jsonify(updated)
+    return jsonify(load_settings())
