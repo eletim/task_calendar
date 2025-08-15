@@ -50,6 +50,27 @@
   background-color: var(--primary-hover);
 }
 
+/* サイドバーのカテゴリ全体を囲む枠 */
+.sidebar-category {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 12px;  /* カテゴリ同士の間隔 */
+  background-color: var(--sidebar-bg);
+}
+
+/* カテゴリ内の見出し部分に軽く背景 */
+.sidebar-category .category-header-wrap {
+  background-color: rgba(0,0,0,0.05); /* ダークモード時は変数に置き換え可 */
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+
+/* ダークモード対応（任意） */
+body[data-theme="dark"] .sidebar-category .category-header-wrap {
+  background-color: rgba(255,255,255,0.05);
+}
+
 /* 追加・編集フォーム */
 .sidebar-form,
 .sidebar-edit-form {
@@ -102,18 +123,42 @@
 /* カテゴリヘッダーと追加ボタン */
 .category-header-wrap {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;                 /* ← ヘッダーと＋の間に隙間 */
+  flex-wrap: nowrap;        /* ← 折り返さない（小さい画面でも詰める） */
 }
 
 .category-header {
   margin: 0;
   cursor: pointer;
+  font-size: 1rem;
+  line-height: 1.2;
+  flex: 1 1 auto;           /* ← タイトルは可変幅に */
+  white-space: nowrap;      /* ← タイトルが長くても1行 */
+  overflow: hidden;
+  text-overflow: ellipsis;  /* ← 省略表示でボタンを潰さない */
 }
 
+/* ここを強化：見える/押せるボタンにする */
 .category-add-btn {
-  background: none;
-  border: none;
+  display: inline-flex;               /* ← アイコン中心揃え */
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;                    /* ← “＋” が潰れない */
+  min-height: 28px;
+  padding: 2px 8px;
+  font-size: 1rem;                    /* ← “＋” を見やすく */
+  line-height: 1;
+  color: var(--text);                 /* ← 背景と同化しないよう明示 */
+  background: transparent;
+  border: 1px solid var(--border);    /* ← 輪郭を付けて視認性UP */
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1.2rem;
+}
+
+.category-add-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-hover);
 }

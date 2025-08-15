@@ -300,7 +300,6 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       onDragEnd={handleDragEnd}
     >
       <div className="sidebar">
-        {/* 「+ タスクを追加」ボタンは削除 */}
 
         {renderSection(
           'normal',
