@@ -207,7 +207,13 @@ function InnerApp() {
           eventDragStop={info => {
             // カレンダー → サイドバー
             if (dropInsideSidebar(info.jsEvent)) {
-              update(info.event.id, { date: null });
+              const { clientX, clientY } = info.jsEvent;
+              const el = document.elementFromPoint(clientX, clientY);
+              const section = el && el.closest?.('.sidebar-category');
+              const category = section?.getAttribute('data-category'); // 'normal' | 'low' | 'recurring' など
+              const payload = { date: null };
+              if (category) payload.category = category;
+              update(info.event.id, payload);
             }
           }}
           eventDrop={handleEventDrop}

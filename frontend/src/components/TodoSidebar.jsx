@@ -230,7 +230,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     return (
-      <div className="sidebar-category">
+      <div className="sidebar-category" data-category={category}>
         <div className="category-header-wrap">
           <h3 className="category-header" onClick={() => setOpen(!isOpen)}>
             {label} {isOpen ? '▾' : '▸'}
