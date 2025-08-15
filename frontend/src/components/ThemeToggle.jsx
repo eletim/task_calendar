@@ -7,6 +7,16 @@ import './ThemeToggle.css';
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
+  const saveThemeSetting = (newTheme) => {
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: newTheme })
+    }).catch((err) => {
+      console.error('テーマ設定の保存に失敗しました', err);
+    });
+  };
+
   return (
     <div className="theme-toggle">
       {/* Light アイコン */}
@@ -15,7 +25,11 @@ export default function ThemeToggle() {
         aria-pressed={theme === 'light'}
         className={`theme-toggle-button ${theme === 'light' ? 'active' : ''}`}
         onClick={() => {
-          if (theme !== 'light') toggleTheme();
+          // 既に light なら何もしない
+          if (theme !== 'light') {
+            toggleTheme();
+            saveThemeSetting('light');
+          }
         }}
       >
         <Sun size={20} />
@@ -27,7 +41,11 @@ export default function ThemeToggle() {
         aria-pressed={theme === 'dark'}
         className={`theme-toggle-button ${theme === 'dark' ? 'active' : ''}`}
         onClick={() => {
-          if (theme !== 'dark') toggleTheme();
+          // 既に dark なら何もしない
+          if (theme !== 'dark') {
+            toggleTheme();
+            saveThemeSetting('dark');
+          }
         }}
       >
         <Moon size={20} />

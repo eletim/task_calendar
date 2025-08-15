@@ -1,39 +1,56 @@
 // frontend/src/App.js
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import FullCalendar from '@fullcalendar/react';
 import jaLocale from '@fullcalendar/core/locales/ja';
 import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import ThemeToggle from './components/ThemeToggle';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
+import SettingsPage from './pages/SettingsPage';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
+import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
+import { useTheme } from './contexts/ThemeContext';
 
 
 function InnerApp() {
   // useTasks フックで tasks と CRUD 関数を取得
   const { tasks, create, update, remove } = useTasks();
-
-  const [routines, setRoutines]          = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number } }
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const calendarRef                      = useRef(null);
+  const { theme, toggleTheme }           = useTheme();  // 現在のテーマとトグル関数を取得
+
+  // 起動時に保存されたテーマを適用
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        const saved = data?.theme;
+        if (saved === 'dark' && theme !== 'dark') {
+          toggleTheme(); // 現在が light なら dark に切り替え
+        } else if (saved === 'light' && theme !== 'light') {
+          toggleTheme(); // 現在が dark なら light に切り替え
+        }
+        // saved が 'default' または undefined の場合は何もしない。
+        // 既存の ThemeProvider がブラウザのカラースキームを使います。
+      })
+      .catch((err) => {
+        console.error('設定の読み込みに失敗しました', err);
+      });
+  }, []); // 初回マウント時に一度だけ実行
 
   // サイドバー判定用
   const dropInsideSidebar = jsEvent => {
     const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return false;
     const rect    = sidebar.getBoundingClientRect();
     const { clientX: x, clientY: y } = jsEvent;
     return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   };
-
-  // ルーチンの初期データ取得
-  useEffect(() => {
-    fetch('/api/routines')
-      .then(res => res.json())
-      .then(data => setRoutines(data));
-  }, []);
 
   // FullCalendar 用に tasks を変換
   const events = tasks.map(t => ({
@@ -47,23 +64,10 @@ function InnerApp() {
     color:            t.color     
   }));
 
-  const toYmd = (d) => {
-    const y    = d.getFullYear();
-    const m    = String(d.getMonth() + 1).padStart(2, '0');
-    const day  = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
   // ─── 日付クリック ──────────────────────────────────
   const handleDateClick = (arg) => {
     // habit 系のクリックなら無視する
-    if (
-      arg.jsEvent?.target?.closest('.habit-row') ||
-      arg.jsEvent?.target?.closest('.habit-input') ||
-      arg.jsEvent?.target?.closest('.habit-box')
-    ) {
-      return;
-    }
+    if (isHabitTarget(arg.jsEvent?.target)) return;
 
     const api = calendarRef.current.getApi();
 
@@ -84,86 +88,6 @@ function InnerApp() {
       startDate.setDate(startDate.getDate() - 3);
       api.changeView('dayGridWeek', startDate);
     }
-  };
-
-  // ─── ルーチン ○ クリック ───────────────────────────
-  const handleBoxClick = dateStr => {
-    const rec         = routines[dateStr] || { flags:[false,false,false], value:0 };
-    const filledCount = rec.flags.filter(v => v).length;
-    toggleCircle(dateStr, filledCount < rec.flags.length ? filledCount : -1);
-  };
-
-  const toggleCircle = (dateStr, idx) => {
-    fetch('/api/routines/flags', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date: dateStr, index: idx })
-    })
-    .then(r => r.json())
-    .then(res => {
-      setRoutines(prev => ({
-        ...prev,
-        [res.date]: { flags: res.state, value: res.value }
-      }));
-    });
-  };
-
-  const postValue = (dateStr, value) => {
-    fetch('/api/routines/value', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date: dateStr, value })
-    })
-    .then(r => r.json())
-    .then(res => {
-      setRoutines(prev => ({
-        ...prev,
-        [res.date]: { flags: res.state, value: res.value }
-      }));
-    });
-  };
-
-  const renderDayCell = arg => {
-    const dateStr = toYmd(arg.date);
-    const rec     = routines[dateStr] || { flags:[false,false,false], value:0 };
-    const arr     = rec.flags;
-    const val     = rec.value;
-
-    return (
-      <div className="fc-daygrid-day-frame">
-        <div className="fc-daygrid-day-top">
-          <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>
-        </div>
-        <div className="habit-row" onClick={e => e.stopPropagation()}>
-          <input
-            className="habit-input"
-            type="number"
-            min={0}
-            max={100}
-            value={val}
-            onMouseDown={e => e.stopPropagation()}
-            onChange={e => {
-              const v = e.target.value === '' 
-                ? '' 
-                : Math.min(100, Math.max(0, Number(e.target.value)));
-              setRoutines(prev => ({
-                ...prev,
-                [dateStr]: { flags: prev[dateStr]?.flags || [false,false,false], value: v }
-              }));
-            }}
-            onBlur={e => postValue(dateStr, e.target.value === '' ? 0 : Number(e.target.value))}
-            onClick={e => e.stopPropagation()}
-          />
-          <div className="habit-box" onClick={e => { e.stopPropagation(); handleBoxClick(dateStr); }}>
-            <div className="habit-circles">
-              {arr.map((on, i) => (
-                <span key={i} className={on ? 'circle filled' : 'circle'} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   // ─── イベント編集／削除／複製 ────────────────────────
@@ -219,12 +143,50 @@ function InnerApp() {
     update(ev.id, { date: ev.startStr });
   };
 
+  // 現在ホバー中のカテゴリに .is-hovered を付ける
+  const setSidebarHoverByPoint = (clientX, clientY) => {
+    // 既存ハイライトを解除
+    document.querySelectorAll('.sidebar-category.is-hovered')
+      .forEach(el => el.classList.remove('is-hovered'));
+
+    // 1) 下層まで見る（対応ブラウザ）
+    const stack = document.elementsFromPoint?.(clientX, clientY) || [];
+    let target = null;
+    for (const node of stack) {
+      const sec = node.closest?.('.sidebar-category');
+      if (sec) { target = sec; break; }
+    }
+
+    // 2) フォールバック：矩形ヒットテスト
+    if (!target) {
+      document.querySelectorAll('.sidebar-category').forEach(sec => {
+        const r = sec.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+          target = sec;
+        }
+      });
+    }
+
+    if (target) target.classList.add('is-hovered');
+  };
+
+  // すべてのハイライトを消す
+  const clearSidebarHover = () => {
+    document.querySelectorAll('.sidebar-category.is-hovered')
+      .forEach(el => el.classList.remove('is-hovered'));
+  };
+
   return (
     <div className="app-container">
       <div className="calendar-container">
         <div className="header">
           <h1 className="calendar-title">タスクカレンダーv0.1</h1>
-          <ThemeToggle />
+          <div className="header-actions">
+            <ThemeToggle />
+            <Link to="/settings" className="icon-btn" aria-label="設定を開く" title="設定">
+              <Settings size={18} />
+            </Link>
+          </div>
         </div>
 
         {editingEvent && (
@@ -245,6 +207,7 @@ function InnerApp() {
           </div>
         )}
 
+        <HabitProvider>
         <FullCalendar
          locale={jaLocale} 
           ref={calendarRef}
@@ -274,10 +237,37 @@ function InnerApp() {
               create(title, null, color, category);
             }
           }}
+          eventDragStart={(info) => {
+            // マウス or タッチ移動でホバー判定
+            const onMove = (e) => {
+              const point = 'touches' in e ? e.touches[0] : e;
+              if (!point) return;
+              setSidebarHoverByPoint(point.clientX, point.clientY);
+            };
+            const onEnd = () => {
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('touchmove', onMove);
+              document.removeEventListener('mouseup', onEnd);
+              document.removeEventListener('touchend', onEnd);
+              clearSidebarHover();
+            };
+
+            document.addEventListener('mousemove', onMove, { passive: true });
+            document.addEventListener('touchmove', onMove, { passive: true });
+            document.addEventListener('mouseup', onEnd, { passive: true });
+            document.addEventListener('touchend', onEnd, { passive: true });
+          }}
           eventDragStop={info => {
             // カレンダー → サイドバー
             if (dropInsideSidebar(info.jsEvent)) {
-              update(info.event.id, { date: null });
+              const { clientX, clientY } = info.jsEvent;
+              const el = document.elementFromPoint(clientX, clientY);
+              const section = el && el.closest?.('.sidebar-category');
+              const category = section?.getAttribute('data-category'); // 'normal' | 'low' | 'recurring' など
+              const payload = { date: null };
+              if (category) payload.category = category;
+              update(info.event.id, payload);
+              clearSidebarHover();
             }
           }}
           eventDrop={handleEventDrop}
@@ -303,9 +293,12 @@ function InnerApp() {
           events={events}
           eventContent={renderEventContent}
           dateClick={handleDateClick}
-          dayCellContent={renderDayCell}
+          dayCellContent={(arg) => (
+            <HabitCell date={arg.date} dayNumberText={arg.dayNumberText} />
+          )}
           height="auto"
         />
+        </HabitProvider>
       </div>
 
       <TodoSidebar
@@ -321,7 +314,12 @@ function InnerApp() {
 export default function App() {
   return (
     <ThemeProvider>
-      <InnerApp />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<InnerApp />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }

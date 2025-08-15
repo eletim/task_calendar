@@ -4,6 +4,7 @@ from flask import Flask, send_from_directory
 from .config import config_map
 from app.routes.tasks import tasks_bp
 from app.routes.routines import routines_bp
+from app.routes.settings import settings_bp
 
 def create_app(config_name=None):
     # 環境変数 APP_MODE があれば優先、なければ引数、それもなければ 'development'
@@ -32,5 +33,6 @@ def create_app(config_name=None):
     # Blueprint 登録
     app.register_blueprint(tasks_bp)
     app.register_blueprint(routines_bp)
+    app.register_blueprint(settings_bp)
 
     return app

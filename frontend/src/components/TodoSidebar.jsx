@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Draggable } from '@fullcalendar/interaction';
+import './TodoSidebar.css';
 
 // --- SortableItem は変更なし ---
 function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
@@ -229,7 +230,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       .sort((a, b) => (a.order || 0) - (b.order || 0));
 
     return (
-      <div className="sidebar-category">
+      <div className="sidebar-category" data-category={category}>
         <div className="category-header-wrap">
           <h3 className="category-header" onClick={() => setOpen(!isOpen)}>
             {label} {isOpen ? '▾' : '▸'}
@@ -299,7 +300,6 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       onDragEnd={handleDragEnd}
     >
       <div className="sidebar">
-        {/* 「+ タスクを追加」ボタンは削除 */}
 
         {renderSection(
           'normal',
