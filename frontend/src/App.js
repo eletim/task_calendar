@@ -143,6 +143,39 @@ function InnerApp() {
     update(ev.id, { date: ev.startStr });
   };
 
+  // 現在ホバー中のカテゴリに .is-hovered を付ける
+  const setSidebarHoverByPoint = (clientX, clientY) => {
+    // 既存ハイライトを解除
+    document.querySelectorAll('.sidebar-category.is-hovered')
+      .forEach(el => el.classList.remove('is-hovered'));
+
+    // 1) 下層まで見る（対応ブラウザ）
+    const stack = document.elementsFromPoint?.(clientX, clientY) || [];
+    let target = null;
+    for (const node of stack) {
+      const sec = node.closest?.('.sidebar-category');
+      if (sec) { target = sec; break; }
+    }
+
+    // 2) フォールバック：矩形ヒットテスト
+    if (!target) {
+      document.querySelectorAll('.sidebar-category').forEach(sec => {
+        const r = sec.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+          target = sec;
+        }
+      });
+    }
+
+    if (target) target.classList.add('is-hovered');
+  };
+
+  // すべてのハイライトを消す
+  const clearSidebarHover = () => {
+    document.querySelectorAll('.sidebar-category.is-hovered')
+      .forEach(el => el.classList.remove('is-hovered'));
+  };
+
   return (
     <div className="app-container">
       <div className="calendar-container">
@@ -204,6 +237,26 @@ function InnerApp() {
               create(title, null, color, category);
             }
           }}
+          eventDragStart={(info) => {
+            // マウス or タッチ移動でホバー判定
+            const onMove = (e) => {
+              const point = 'touches' in e ? e.touches[0] : e;
+              if (!point) return;
+              setSidebarHoverByPoint(point.clientX, point.clientY);
+            };
+            const onEnd = () => {
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('touchmove', onMove);
+              document.removeEventListener('mouseup', onEnd);
+              document.removeEventListener('touchend', onEnd);
+              clearSidebarHover();
+            };
+
+            document.addEventListener('mousemove', onMove, { passive: true });
+            document.addEventListener('touchmove', onMove, { passive: true });
+            document.addEventListener('mouseup', onEnd, { passive: true });
+            document.addEventListener('touchend', onEnd, { passive: true });
+          }}
           eventDragStop={info => {
             // カレンダー → サイドバー
             if (dropInsideSidebar(info.jsEvent)) {
@@ -214,6 +267,7 @@ function InnerApp() {
               const payload = { date: null };
               if (category) payload.category = category;
               update(info.event.id, payload);
+              clearSidebarHover();
             }
           }}
           eventDrop={handleEventDrop}
