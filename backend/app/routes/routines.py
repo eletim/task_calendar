@@ -222,6 +222,42 @@ def update_flags():
         "if_then_rules": resp_norm["if_then_rules"]
     })
 
+@routines_bp.route('/api/routines/flags', methods=['PUT'])
+def put_flags():
+    body = request.get_json(force=True)
+    date = body.get('date')
+    arr  = to_bool_list(body.get('flags'))
+
+    if not isinstance(date, str) or arr is None:
+        return jsonify({'error': 'invalid payload'}), 400
+
+    max_flags_len, _ = get_current_limits()
+    if len(arr) > max_flags_len:
+        return jsonify({'error': f'flags length exceeds maximum {max_flags_len}'}), 400
+
+    all_data = load_raw()
+    rec = all_data.get(date)
+
+    # list→dict 化（最小限）
+    if rec is None:
+        rec = {}
+    elif isinstance(rec, list):
+        rec = {"flags": to_bool_list(rec) or make_bools(max_flags_len), "value": DEFAULT_VALUE}
+    elif not isinstance(rec, dict):
+        rec = {}
+
+    # 保存は受け取った配列のまま（長さ不足はそのまま）
+    rec["flags"] = arr
+    all_data[date] = rec
+    save_all(all_data)
+
+    resp = normalize_for_response(rec)  # 表示は既定長拡張
+    return jsonify({
+        "date": date,
+        "state": resp["flags"],            # 既存互換キー
+        "if_then_rules": resp["if_then_rules"],
+        "value": resp["value"]
+    })
 
 @routines_bp.route('/api/routines/if_then_rules', methods=['POST'])
 def update_if_then_rules():
@@ -280,6 +316,43 @@ def update_if_then_rules():
         "state": resp_norm["flags"]  # 既存互換
     })
 
+@routines_bp.route('/api/routines/if_then_rules', methods=['PUT'])
+def put_if_then_rules():
+    body = request.get_json(force=True)
+    date = body.get('date')
+    arr  = to_bool_list(body.get('if_then_rules'))
+
+    if not isinstance(date, str) or arr is None:
+        return jsonify({'error': 'invalid payload'}), 400
+
+    _, max_ifthen_len = get_current_limits()
+    if len(arr) > max_ifthen_len:
+        return jsonify({'error': f'if_then_rules length exceeds maximum {max_ifthen_len}'}), 400
+
+    all_data = load_raw()
+    rec = all_data.get(date)
+
+    # list → dict 化（必要最小限）
+    if rec is None:
+        rec = {}
+    elif isinstance(rec, list):
+        max_flags_len, _ = get_current_limits()
+        rec = {"flags": to_bool_list(rec) or make_bools(max_flags_len), "value": DEFAULT_VALUE}
+    elif not isinstance(rec, dict):
+        rec = {}
+
+    # 受け取った配列をそのまま保存（短いままでもOK）
+    rec["if_then_rules"] = arr
+    all_data[date] = rec
+    save_all(all_data)
+
+    resp = normalize_for_response(rec)  # 表示は既定長に拡張
+    return jsonify({
+        "date": date,
+        "if_then_rules": resp["if_then_rules"],
+        "value": resp["value"],
+        "state": resp["flags"]  # 既存互換
+    })
 
 @routines_bp.route('/api/routines/value', methods=['POST'])
 def update_value():

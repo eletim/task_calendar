@@ -76,9 +76,21 @@ export function HabitProvider({ children }) {
     const fLen  = safeLen(flagsLength);
     const iLen  = safeLen(ifThenLength);
     if (rec) {
+      // flags
+      let flags = Array.isArray(rec.flags) ? rec.flags : [];
+      if (flags.length === 0 || flags.every(v => v === false)) {
+        flags = Array(fLen).fill(false);
+      }
+
+      // if-then rules
+      let ifThen = Array.isArray(rec.if_then_rules) ? rec.if_then_rules : [];
+      if (ifThen.length === 0 || ifThen.every(v => v === false)) {
+        ifThen = Array(iLen).fill(false);
+      }
+
       return {
-        flags: Array.isArray(rec.flags) ? rec.flags : Array(fLen).fill(false),
-        if_then_rules: Array.isArray(rec.if_then_rules) ? rec.if_then_rules : Array(iLen).fill(false),
+        flags,
+        if_then_rules: ifThen,
         value: typeof rec.value === 'number' ? rec.value : 0
       };
     }
@@ -136,10 +148,33 @@ export function HabitProvider({ children }) {
     }));
   };
 
+  const putFlags = async (dateStr, flags) => {
+    const r = await fetch('/api/routines/flags', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ date: dateStr, flags })
+    });
+    const res = await r.json();
+    setRoutines(prev => ({
+      ...prev,
+      [res.date]: {
+        flags: res.state,
+        if_then_rules: res.if_then_rules,
+        value: res.value
+      }
+    }));
+  };
+
   const cycleFill = (dateStr) => {
     const rec = getRecord(dateStr);
+    const next = rec.flags.slice();
     const filledCount = rec.flags.filter(Boolean).length;
-    toggleCircle(dateStr, filledCount < rec.flags.length ? filledCount : -1);
+    if (filledCount < next.length) next[filledCount] = true;
+    else next.fill(false);
+    // 楽観更新
+    setRoutines(prev => ({ ...prev, [dateStr]: { ...rec, flags: next }}));
+    // サーバ反映
+    putFlags(dateStr, next);
   };
 
   const toggleIfThen = async (dateStr, idx) => {
@@ -159,11 +194,33 @@ export function HabitProvider({ children }) {
     }));
   };
 
+  const putIfThenRules = async (dateStr, rules) => {
+    const r = await fetch('/api/routines/if_then_rules', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ date: dateStr, if_then_rules: rules })
+    });
+    const res = await r.json();
+    setRoutines(prev => ({
+      ...prev,
+      [res.date]: {
+        flags: res.state,
+        if_then_rules: res.if_then_rules,
+        value: res.value
+      }
+    }));
+  };
+
   const cycleIfThen = (dateStr) => {
     const rec = getRecord(dateStr);
-    const arr = rec.if_then_rules;
-    const filledCount = arr.filter(Boolean).length;
-    toggleIfThen(dateStr, filledCount < arr.length ? filledCount : -1);
+    const next = rec.if_then_rules.slice();
+    const filledCount = next.filter(Boolean).length;
+    if (filledCount < next.length) next[filledCount] = true;
+    else next.fill(false);
+    // 楽観更新
+    setRoutines(prev => ({ ...prev, [dateStr]: { ...rec, if_then_rules: next }}));
+    // サーバ反映
+    putIfThenRules(dateStr, next);
   };
 
   return (
