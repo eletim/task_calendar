@@ -163,6 +163,12 @@ body[data-theme="dark"] .sidebar-category .category-header-wrap {
   border-color: var(--primary-hover);
 }
 
+.category-dropzone {
+  height: 10px;
+  margin: 6px 0 12px;
+  background: transparent;
+}
+
 /* ドロップ候補のハイライト */
 .sidebar-category {
   transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;

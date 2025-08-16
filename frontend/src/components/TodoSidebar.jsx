@@ -1,7 +1,7 @@
 // frontend/src/components/TodoSidebar.jsx
 
 import React, { useState, useEffect, useRef } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
   arrayMove,
@@ -47,6 +47,25 @@ function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
       </div>
       {children}
     </li>
+  );
+}
+
+function CategoryDropZone({ id, children, className }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    data: { type: 'category', category: id.replace('cat:', '') },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={className}
+      style={{
+        outline: isOver ? '2px dashed var(--primary)' : 'none',
+        borderRadius: 6,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -152,6 +171,24 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
     if (!over || active.id === over.id) return;
     const activeTask = tasks.find(t => String(t.id) === active.id);
     const overTask = tasks.find(t => String(t.id) === over.id);
+
+    // --- カテゴリヘッダー/ドロップラインに落ちた場合（閉じていてもOK）
+    const overData = over.data?.current;
+    if (overData?.type === 'category') {
+      const targetCategory = overData.category;
+      // そのカテゴリの末尾に並べ替え
+      const target = tasks
+        .filter(t => t.category === targetCategory && t.date === null)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      // カテゴリ変更
+      if (activeTask && activeTask.category !== targetCategory) {
+        update(active.id, { category: targetCategory });
+      }
+      // 末尾に置かれた前提で order を振り直し
+      const newList = [...target, { ...activeTask, category: targetCategory }];
+      newList.forEach((task, i) => updateOrder?.(task.id, i, targetCategory));
+      return;
+    }
     if (!activeTask || !overTask) return;
 
     if (activeTask.category === overTask.category) {
@@ -231,7 +268,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
 
     return (
       <div className="sidebar-category" data-category={category}>
-        <div className="category-header-wrap">
+        <CategoryDropZone id={`cat:${category}`} className="category-header-wrap">
           <h3 className="category-header" onClick={() => setOpen(!isOpen)}>
             {label} {isOpen ? '▾' : '▸'}
           </h3>
@@ -243,7 +280,7 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
               ＋
             </button>
           )}
-        </div>
+        </CategoryDropZone>
 
         {addingCategory === category && (
           <form
