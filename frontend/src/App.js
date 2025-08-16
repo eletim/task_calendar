@@ -5,10 +5,8 @@ import jaLocale from '@fullcalendar/core/locales/ja';
 import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
-import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SettingsPage from './pages/SettingsPage';
 import { useTasks } from './hooks/useTasks';
 import TodoSidebar from './components/TodoSidebar';
@@ -181,12 +179,6 @@ function InnerApp() {
       <div className="calendar-container">
         <div className="header">
           <h1 className="calendar-title">タスクカレンダーv0.1</h1>
-          <div className="header-actions">
-            <ThemeToggle />
-            <Link to="/settings" className="icon-btn" aria-label="設定を開く" title="設定">
-              <Settings size={18} />
-            </Link>
-          </div>
         </div>
 
         {editingEvent && (

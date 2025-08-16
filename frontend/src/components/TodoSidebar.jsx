@@ -11,6 +11,9 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Draggable } from '@fullcalendar/interaction';
 import './TodoSidebar.css';
+import ThemeToggle from '../components/ThemeToggle';
+import { Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 
 // --- SortableItem は変更なし ---
 function SortableItem({ id, disabled, children, dataEvent, task, onEdit }) {
@@ -337,7 +340,15 @@ export default function TodoSidebar({ tasks, create, update, remove, updateOrder
       onDragEnd={handleDragEnd}
     >
       <div className="sidebar">
-
+        {/* ── サイドバー上部：左=テーマトグル／右=設定 ── */}
+        <div className="sidebar-topbar">
+          <div className="sidebar-topbar-left">
+            <ThemeToggle />
+          </div>
+          <Link to="/settings" className="icon-btn" aria-label="設定を開く" title="設定">
+            <Settings size={18} />
+          </Link>
+        </div>
         {renderSection(
           'normal',
           '通常のタスク',

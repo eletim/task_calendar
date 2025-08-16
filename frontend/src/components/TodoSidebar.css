@@ -201,3 +201,42 @@ body[data-theme="dark"] .sidebar-category.is-hovered {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(144, 202, 249, 0.15) inset;
 }
+
+/* サイドバー上部バー */
+.sidebar-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  position: sticky;      /* スクロールしても上に固定したい場合 */
+  top: 0;                /* sticky の基準 */
+  background: var(--sidebar-bg);
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  /* 角丸や影が欲しければお好みで */
+}
+
+.sidebar-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 既存の .icon-btn を流用していれば不要。
+   なければ最低限の見た目を付与 */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  filter: brightness(0.95);
+}
