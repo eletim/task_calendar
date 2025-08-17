@@ -1,10 +1,13 @@
-# wsgi.py
+# backend/wsgi.py
 import os
-from app import create_app
+import sys
 
-# 環境変数 APP_MODE=production|development に応じて生成
-mode = os.getenv('APP_MODE', 'production')
-application = create_app(mode)
+HERE = os.path.dirname(os.path.abspath(__file__))  # backend/
+ROOT = os.path.dirname(HERE)                        # プロジェクトルート
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-# Gunicorn からは以下で起動:
-#   APP_MODE=production gunicorn wsgi:application -b 0.0.0.0:8000
+from backend.app import create_app
+
+# 本番想定の既定は 'production'（環境変数 APP_MODE で上書き可）
+application = create_app(os.getenv('APP_MODE', 'production'))

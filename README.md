@@ -102,13 +102,20 @@ chmod +x infra/setup_nginx.sh
 infra/setup_nginx.sh your-domain.com
 ```
 
+# migration
+
+
+```sh
+python3 -m flask --app 'backend.app:create_app' db init
+python3 -m flask --app 'backend.app:create_app' db migrate -m "init tables"
+python3 -m flask --app 'backend.app:create_app' db upgrade
+```
+
 
 # TODO
 
-- if then ルール
-- 右クリックで変更できるようにする
+- データベース
 - Task移動の際のUI改善：OptimisticなUseTaskフックの導入
-- nginx
 - TODOリスト内で優先度設定
 - スマホアプリ化
 - その日のメモあってもいい？

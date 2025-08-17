@@ -1,5 +1,6 @@
 // frontend/src/components/Habit.jsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api';
 
 const HabitContext = createContext(null);
 
@@ -16,8 +17,7 @@ export function HabitProvider({ children }) {
 
   useEffect(() => {
     // 設定読み込み
-    fetch('/api/settings')
-      .then(res => res.json())
+    apiFetch('/api/settings')
       .then(data => {
         const r = data?.routine || {};
         const v = r.value || {};
@@ -36,8 +36,7 @@ export function HabitProvider({ children }) {
       });
 
     // routines データの読み込み
-    fetch('/api/routines')
-      .then(r => r.json())
+    apiFetch('/api/routines')
       .then(setRoutines)
       .catch(console.error);
   }, []);

@@ -1,122 +1,93 @@
 from flask import Blueprint, jsonify, request, abort
+from flask_jwt_extended import jwt_required
+from .. import db
+from ..models import Task
+from ._authutil import require_user
 import re
-import os, json
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
-# JSON ファイルのパス
-BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE = os.path.join(BASE_DIR, '..', '..', '..', 'data', 'tasks.json')
-
-def ensure_data_file():
-    """tasks.json がなければ空のリストを作成しておく"""
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-
-def load_tasks():
-    """ファイルを読み込んで Python のリストで返す"""
-    ensure_data_file()
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            return []
-
-def save_tasks(tasks):
-    """Python のリストを JSON ファイルへ書き込む"""
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(tasks, f, ensure_ascii=False, indent=2)
-
-def next_id(tasks):
-    """既存タスクの最大 id + 1 を返す"""
-    return max((t.get('id', 0) for t in tasks), default=0) + 1
-
-@tasks_bp.route('/', methods=['GET'])
+@tasks_bp.get('/')
+@jwt_required()
 def get_tasks():
-    """全タスク取得"""
-    return jsonify(load_tasks())
+    user = require_user()
+    rows = Task.query.filter_by(user_id=user.id).order_by(Task.id.asc()).all()
+    return jsonify([{
+        'id': r.id, 'title': r.title, 'date': r.date, 'done': r.done,
+        'color': r.color, 'category': r.category
+    } for r in rows])
 
-@tasks_bp.route('/', methods=['POST'])
+@tasks_bp.post('/')
+@jwt_required()
 def add_task():
-    """
-    新規タスク作成
-    必須：title
-    任意：date (YYYY-MM-DD)、done (boolean)
-    """
+    user = require_user()
     data = request.get_json() or {}
-    title = data.get('title', '').strip()
+    title = (data.get('title') or '').strip()
     if not title:
         return jsonify({'error': 'title is required'}), 400
 
-    # カテゴリーを受け取る（未指定時は "normal"）
     category = data.get('category', 'normal')
-    if category not in ('normal', 'recurring', 'low'):
-        return jsonify({'error': 'invalid category'}), 400
+    if category not in ('normal','recurring','low'):
+        return jsonify({'error':'invalid category'}), 400
 
-    tasks = load_tasks()
-    new_task = {
-        'id':    next_id(tasks),
-        'title': title,
-        # date フィールドがあればそのまま、なければ None (フロントで振り分け)
-        'date':  data.get('date'),
-        # done フラグは任意、指定がなければ False
-        'done':  bool(data.get('done', False)),
-        'color': data.get('color', '#3788d8'),
-        'category': category,
-    }
-    tasks.append(new_task)
-    save_tasks(tasks)
-    return jsonify(new_task), 201
+    color = (data.get('color') or '#3788d8').strip()
+    if not re.fullmatch(r'#[0-9A-Fa-f]{6}', color):
+        return jsonify({'error':'invalid color format'}), 400
 
-@tasks_bp.route('/<int:task_id>', methods=['PUT', 'PATCH'])
+    t = Task(
+        title=title,
+        date=data.get('date'),
+        done=bool(data.get('done', False)),
+        color=color,
+        category=category,
+        user_id=user.id
+    )
+    db.session.add(t); db.session.commit()
+    return jsonify({
+        'id': t.id, 'title': t.title, 'date': t.date, 'done': t.done,
+        'color': t.color, 'category': t.category
+    }), 201
+
+@tasks_bp.route('/<int:task_id>', methods=['PUT','PATCH'])
+@jwt_required()
 def update_task(task_id):
-    """
-    タスク更新（部分更新にも対応）
-    受け付けるフィールド：title, date, done
-     - date = null でカレンダー→リスト移動
-     - date = 'YYYY-MM-DD' でリスト→カレンダー移動
-    """
+    user = require_user()
     data = request.get_json() or {}
-    # 更新対象フィールドが一つもなければエラー
-    if not any(k in data for k in ('title', 'date', 'done', 'color', 'category')):
-        return jsonify({'error': 'nothing to update'}), 400
+    if not any(k in data for k in ('title','date','done','color','category')):
+        return jsonify({'error':'nothing to update'}), 400
 
-    tasks = load_tasks()
-    for t in tasks:
-        if t.get('id') == task_id:
-            if 'title' in data:
-                t['title'] = data['title'].strip() or t['title']
-            if 'date' in data:
-                # 明示的に null を許容 → JSON では None
-                t['date'] = data['date']
-            if 'done' in data:
-                t['done'] = bool(data['done'])
-            if 'color' in data:
-                # 前後空白を除去
-                color = data['color'].strip()
-                # #RRGGBB 形式かチェック
-                if re.fullmatch(r'#[0-9A-Fa-f]{6}', color):
-                    t['color'] = color
-                else:
-                    # フォーマットが不正だったら無視 or エラーにする
-                    abort(400, description="invalid color format")
-            if 'category' in data:
-                cat = data['category']
-                if cat not in ('normal', 'recurring', 'low'):
-                    abort(400, description="invalid category")
-                t['category'] = cat
-            save_tasks(tasks)
-            return jsonify(t)
-    abort(404)
+    t = Task.query.filter_by(id=task_id, user_id=user.id).first()
+    if not t: abort(404)
 
-@tasks_bp.route('/<int:task_id>', methods=['DELETE'])
+    if 'title' in data:
+        title = (data['title'] or '').strip()
+        if title: t.title = title
+    if 'date' in data:
+        t.date = data['date']
+    if 'done' in data:
+        t.done = bool(data['done'])
+    if 'color' in data:
+        color = (data['color'] or '').strip()
+        if not re.fullmatch(r'#[0-9A-Fa-f]{6}', color):
+            abort(400, description='invalid color format')
+        t.color = color
+    if 'category' in data:
+        cat = data['category']
+        if cat not in ('normal','recurring','low'):
+            abort(400, description='invalid category')
+        t.category = cat
+
+    db.session.commit()
+    return jsonify({
+        'id': t.id, 'title': t.title, 'date': t.date, 'done': t.done,
+        'color': t.color, 'category': t.category
+    })
+
+@tasks_bp.delete('/<int:task_id>')
+@jwt_required()
 def delete_task(task_id):
-    """タスク削除"""
-    tasks = load_tasks()
-    new_tasks = [t for t in tasks if t.get('id') != task_id]
-    if len(new_tasks) == len(tasks):
-        abort(404)
-    save_tasks(new_tasks)
+    user = require_user()
+    t = Task.query.filter_by(id=task_id, user_id=user.id).first()
+    if not t: abort(404)
+    db.session.delete(t); db.session.commit()
     return '', 204
