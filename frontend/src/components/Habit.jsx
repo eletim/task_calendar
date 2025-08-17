@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api';
 const HabitContext = createContext(null);
 
 export function HabitProvider({ children }) {
-  const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,bool,bool], value:number, if_then_rules:[...] } }
+  const [routines, setRoutines] = useState({}); // { 'YYYY-MM-DD': { flags:[bool,...], value:number, if_then_rules:[...] } }
 
   // 設定値（display/length）
   const [valueDisplay, setValueDisplay] = useState(true);
@@ -114,12 +114,10 @@ export function HabitProvider({ children }) {
   };
 
   const postValue = async (dateStr, value) => {
-    const r = await fetch('/api/routines/value', {
+    const res = await apiFetch('/api/routines/value', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ date: dateStr, value })
     });
-    const res = await r.json();
     setRoutines(prev => ({
       ...prev,
       [res.date]: {
@@ -130,30 +128,11 @@ export function HabitProvider({ children }) {
     }));
   };
 
-  const toggleCircle = async (dateStr, idx) => {
-    const r = await fetch('/api/routines/flags', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date: dateStr, index: idx })
-    });
-    const res = await r.json();
-    setRoutines(prev => ({
-      ...prev,
-      [res.date]: {
-        flags: preferExistingLen(res.state, prev[res.date]?.flags, flagsLength),
-        if_then_rules: preferExistingLen(undefined, prev[res.date]?.if_then_rules, ifThenLength),
-        value: res.value
-      }
-    }));
-  };
-
   const putFlags = async (dateStr, flags) => {
-    const r = await fetch('/api/routines/flags', {
+    const res = await apiFetch('/api/routines/flags', {
       method: 'PUT',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ date: dateStr, flags })
     });
-    const res = await r.json();
     setRoutines(prev => ({
       ...prev,
       [res.date]: {
@@ -176,30 +155,11 @@ export function HabitProvider({ children }) {
     putFlags(dateStr, next);
   };
 
-  const toggleIfThen = async (dateStr, idx) => {
-    const r = await fetch('/api/routines/if_then_rules', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date: dateStr, index: idx })
-    });
-    const res = await r.json();
-    setRoutines(prev => ({
-      ...prev,
-      [res.date]: {
-        flags: preferExistingLen(res.state, prev[res.date]?.flags, flagsLength),
-        if_then_rules: preferExistingLen(res.if_then_rules, prev[res.date]?.if_then_rules, ifThenLength),
-        value: res.value
-      }
-    }));
-  };
-
   const putIfThenRules = async (dateStr, rules) => {
-    const r = await fetch('/api/routines/if_then_rules', {
+    const res = await apiFetch('/api/routines/if_then_rules', {
       method: 'PUT',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ date: dateStr, if_then_rules: rules })
     });
-    const res = await r.json();
     setRoutines(prev => ({
       ...prev,
       [res.date]: {
