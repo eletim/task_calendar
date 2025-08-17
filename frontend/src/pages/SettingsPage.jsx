@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import './SettingsPage.css';
 import ThemeToggle from '../components/ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
+import { apiFetch } from '../lib/api';
 
 function SettingsPreview({
   valueDisplay,
@@ -88,7 +89,7 @@ export default function SettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/settings');
+        const res = await apiFetch('/api/settings');
         if (!res.ok) throw new Error();
         const data = await res.json();
 
@@ -149,7 +150,7 @@ export default function SettingsPage() {
       try {
         setSaving(true);
         setError('');
-        const res = await fetch('/api/settings', {
+        const res = await apiFetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: json,

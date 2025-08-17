@@ -3,14 +3,14 @@ import React from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './ThemeToggle.css';
+import { apiFetch } from '../lib/api';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
 
   const saveThemeSetting = (newTheme) => {
-    fetch('/api/settings', {
+    apiFetch('/api/settings', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ theme: newTheme })
     }).catch((err) => {
       console.error('テーマ設定の保存に失敗しました', err);
