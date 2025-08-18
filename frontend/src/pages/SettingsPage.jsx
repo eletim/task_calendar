@@ -89,9 +89,7 @@ export default function SettingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiFetch('/api/settings');
-        if (!res.ok) throw new Error();
-        const data = await res.json();
+        const data = await apiFetch('/api/settings');
 
         const savedTheme = data?.theme ?? 'default';
         setPrefTheme(savedTheme);
@@ -150,13 +148,11 @@ export default function SettingsPage() {
       try {
         setSaving(true);
         setError('');
-        const res = await apiFetch('/api/settings', {
+        await apiFetch('/api/settings', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: json,
           signal: controller.signal,
         });
-        if (!res.ok) throw new Error('保存に失敗しました');
         lastSentRef.current = json;
         setSavedAt(Date.now());
       } catch (e) {
