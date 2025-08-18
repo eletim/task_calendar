@@ -1,6 +1,6 @@
 # app/routes/auth.py
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from ..extensions import db
 from ..models import User
 
@@ -31,3 +31,9 @@ def login():
         return jsonify({'error': 'invalid credentials'}), 401
     token = create_access_token(identity=u.id)
     return jsonify({'access_token': token})
+
+@auth_bp.post('/refresh')
+@jwt_required(refresh=True)
+def refresh_token():
+    uid = get_jwt_identity()
+    return jsonify(access_token=create_access_token(identity=uid))
