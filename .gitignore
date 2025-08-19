@@ -29,5 +29,6 @@ __pycache__/
 data/*
 !data/.gitkeep
 
-migrations/
-instance/
+# ---- Flask instance（実データ/秘密） ----
+instance/*
+!instance/.gitkeep

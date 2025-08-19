@@ -25,12 +25,6 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
         cur.execute("PRAGMA foreign_keys=ON")
         cur.close()
 
-@app.teardown_request
-def _teardown_request(exc):
-    if exc:
-        db.session.rollback()
-    db.session.remove()
-
 def create_app(config_name=None):
     # 環境変数 APP_MODE があれば優先、なければ引数、それもなければ 'development'
     cfg = config_name or os.getenv('APP_MODE', 'development')
@@ -50,6 +44,12 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     jwt.init_app(app)
+
+    @app.teardown_request
+    def _teardown_request(exc):
+        if exc:
+            db.session.rollback()
+        db.session.remove()
 
     # --- JWT エラーを JSON に統一 ---
     @jwt.unauthorized_loader

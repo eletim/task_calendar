@@ -111,12 +111,14 @@ python3 -m flask --app 'backend.app:create_app' db migrate -m "init tables"
 python3 -m flask --app 'backend.app:create_app' db upgrade
 ```
 
+flask db migrate -m "mutable json, indexes, unique constraints"
+flask db upgrade
+
 
 # TODO
 
-- データベース
 - Task移動の際のUI改善：OptimisticなUseTaskフックの導入
-- TODOリスト内で優先度設定
 - スマホアプリ化
 - その日のメモあってもいい？
-- パスワード設定、データベース
+- 画像メモがあってもいい？　→過去の参照は必要なのか問題
+- 月表示ならタスクの省略表示
