@@ -25,6 +25,11 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
         cur.execute("PRAGMA foreign_keys=ON")
         cur.close()
 
+@app.teardown_request
+def _teardown_request(exc):
+    if exc:
+        db.session.rollback()
+    db.session.remove()
 
 def create_app(config_name=None):
     # 環境変数 APP_MODE があれば優先、なければ引数、それもなければ 'development'

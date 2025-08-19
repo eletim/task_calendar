@@ -96,7 +96,14 @@ def put_flags():
         return jsonify({'error': f'flags length exceeds maximum {f_len}'}), 400
  
     rec = Routine.query.filter_by(user_id=user.id, date=date).first()
-    if not rec: rec = Routine(user_id=user.id, date=date, value=0)
+    if not rec:
+        rec = Routine(user_id=user.id, date=date, flags=make_bools(max_flags_len), value=0)
+        db.session.add(rec)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            rec = Routine.query.filter_by(user_id=user.id, date=date).first()
     rec.flags = arr
     db.session.add(rec); db.session.commit()
 

@@ -1,11 +1,21 @@
 from flask import Blueprint, jsonify, request, abort
 from flask_jwt_extended import jwt_required
+from datetime import datetime
 from .. import db
 from ..models import Task
 from ._authutil import require_user
 import re
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
+
+def _is_valid_date(s: str) -> bool:
+    try:
+        datetime.strptime(s, "%Y-%m-%d"); return True
+    except Exception:
+        return False
+
+def _is_valid_date_or_none(x):
+    return x is None or (isinstance(x, str) and _is_valid_date(x))
 
 @tasks_bp.get('/')
 @jwt_required()
@@ -33,10 +43,14 @@ def add_task():
     color = (data.get('color') or '#3788d8').strip()
     if not re.fullmatch(r'#[0-9A-Fa-f]{6}', color):
         return jsonify({'error':'invalid color format'}), 400
-
+    
+    date = data.get('date')
+    if not _is_valid_date_or_none(date):
+        return jsonify({'error':'invalid date (must be YYYY-MM-DD or null)'}), 400
+    
     t = Task(
         title=title,
-        date=data.get('date'),
+        date=date,
         done=bool(data.get('done', False)),
         color=color,
         category=category,
@@ -63,6 +77,8 @@ def update_task(task_id):
         title = (data['title'] or '').strip()
         if title: t.title = title
     if 'date' in data:
+        if not _is_valid_date_or_none(data['date']):
+            return jsonify({'error':'invalid date (must be YYYY-MM-DD or null)'}), 400
         t.date = data['date']
     if 'done' in data:
         t.done = bool(data['done'])

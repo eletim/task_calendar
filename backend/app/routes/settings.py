@@ -10,7 +10,7 @@ settings_bp = Blueprint('settings', __name__)
 def _get_or_init_user_settings(user):
     s = Setting.query.filter_by(user_id=user.id).first()
     if not s:
-        s = Setting(user_id=user.id, data=DEFAULT_SETTINGS.copy())
+        s = Setting(user_id=user.id, data=copy.deepcopy(DEFAULT_SETTINGS))
         db.session.add(s)
         db.session.commit()
     return s
@@ -23,9 +23,11 @@ def get_settings():
     # 後方互換のマージ＆正規化
     merged = merge_defaults(DEFAULT_SETTINGS, s.data or {})
     normalized = normalize_types(migrate_legacy(merged))
-    # DBへも反映（フォーマットを保つ）
-    s.data = normalized
-    db.session.commit()
+
+    if s.data != normalized:
+        s.data = normalized
+        db.session.commit()
+    
     return jsonify(normalized)
 
 @settings_bp.route('/api/settings', methods=['POST','PUT'])
