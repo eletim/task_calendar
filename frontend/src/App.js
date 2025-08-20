@@ -148,6 +148,7 @@ function InnerApp() {
     const ev   = dropInfo.event;
     const done = ev.extendedProps.done;
     if (done) {
+      alert('完了済みのタスクは移動できません');
       dropInfo.revert();
       return;
     }
@@ -265,6 +266,12 @@ function InnerApp() {
           eventDragStop={info => {
             // カレンダー → サイドバー
             if (dropInsideSidebar(info.jsEvent)) {
+              const done = info.event.extendedProps.done;
+              if (done) {
+                alert('完了済みのタスクは移動できません');
+                return;
+              }
+              
               const { clientX, clientY } = info.jsEvent;
               const el = document.elementFromPoint(clientX, clientY);
               const section = el && el.closest?.('.sidebar-category');
