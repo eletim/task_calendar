@@ -17,15 +17,15 @@ then,
 
 ```sh
 # 開発サーバー起動
-$ python3 run.py --mode debug
+$ python3 backend/run.py --mode debug
 
 # Gunicorn 経由で起動
-$ python3 run.py --mode gunicorn --host 0.0.0.0 --port 8000
+$ python3 backend/run.py --mode gunicorn --host 0.0.0.0 --port 8000
 ```
 
 ## ipv6
 ```sh
-python3 run.py --mode gunicorn --host "[::]" --port 8000
+python3 backend/run.py --mode gunicorn --host "[::]" --port 8000
 ```
 
 # ngrok
@@ -102,14 +102,24 @@ chmod +x infra/setup_nginx.sh
 infra/setup_nginx.sh your-domain.com
 ```
 
+# migration
+
+
+```sh
+python3 -m flask --app 'backend.app:create_app' db init
+python3 -m flask --app 'backend.app:create_app' db migrate -m "init tables"
+python3 -m flask --app 'backend.app:create_app' db upgrade
+```
+
+```sh
+flask db migrate -m "mutable json, indexes, unique constraints"
+flask db upgrade
+```
 
 # TODO
 
-- if then ルール
-- 右クリックで変更できるようにする
 - Task移動の際のUI改善：OptimisticなUseTaskフックの導入
-- nginx
-- TODOリスト内で優先度設定
 - スマホアプリ化
 - その日のメモあってもいい？
-- パスワード設定、データベース
+- 画像メモがあってもいい？　→過去の参照は必要なのか問題
+- 月表示ならタスクの省略表示

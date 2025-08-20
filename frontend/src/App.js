@@ -6,6 +6,9 @@ import dayGridPlugin  from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import LoginPage from './pages/LoginPage';
+import { apiFetch } from './lib/api';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SettingsPage from './pages/SettingsPage';
 import { useTasks } from './hooks/useTasks';
@@ -13,6 +16,17 @@ import TodoSidebar from './components/TodoSidebar';
 import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
 import { useTheme } from './contexts/ThemeContext';
 
+function RequireAuth({ children }) {
+  const { token } = useAuth();
+  if (!token) {
+    // 未ログインならログイン画面へ
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.replace('/login');
+    }
+    return null;
+  }
+  return children;
+}
 
 function InnerApp() {
   // useTasks フックで tasks と CRUD 関数を取得
@@ -24,8 +38,7 @@ function InnerApp() {
 
   // 起動時に保存されたテーマを適用
   useEffect(() => {
-    fetch('/api/settings')
-      .then((res) => res.json())
+    apiFetch('/api/settings')
       .then((data) => {
         const saved = data?.theme;
         if (saved === 'dark' && theme !== 'dark') {
@@ -306,12 +319,15 @@ function InnerApp() {
 export default function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<InnerApp />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<RequireAuth><InnerApp /></RequireAuth>} />
+            <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

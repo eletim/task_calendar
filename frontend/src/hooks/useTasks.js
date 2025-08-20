@@ -1,66 +1,40 @@
 // src/hooks/useTasks.js
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { apiFetch } from '../lib/api';
+
 export function useTasks() {
   const [tasks, setTasks] = useState([]);
-  const API = '/api/tasks';
 
-  useEffect(() => { fetchAll() }, []);
+  useEffect(() => {
+    apiFetch('/api/tasks/')
+      .then(setTasks)
+      .catch((e) => console.error('tasks load failed', e));
+  }, []);
 
-  const fetchAll = async () => {
-    const res = await fetch(API);
-    if (res.ok) {
-      const data = await res.json();
-      // order が無ければ 0 を補完し、order 順にソートして保存
-      setTasks(
-        data
-          .map(t => ({ ...t, order: t.order ?? 0 }))
-          .sort((a, b) => a.order - b.order)
-      );
-    }
-  };
-
-  const create  = async (title, date=null, color='#3788d8', category='normal') => {
-    const nextOrder = tasks.length;
-    // date が null でなければ含めるペイロードを組み立て
-    const payload = {
-      title,
-      color,
-      category,
-      order: nextOrder,
-      ...(date != null ? { date } : {}),
-    };
-
-    await fetch(API, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload),
-    });
-    fetchAll();
-  };
-
-  const update  = async (id, fields) => {
-    await fetch(`${API}/${id}`, {
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(fields),
-    });
-    fetchAll();
-  };
-
-  // ─────────── 並び替え用 API 呼び出し ───────────
-  const updateOrder = async (id, order, category) => {
-    await fetch(`${API}/${id}/order`, {
+  const create = useCallback((title, date=null, color='#3788d8', category='normal') => {
+    return apiFetch('/api/tasks/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order, category }),
+      body: JSON.stringify({ title, date, color, category })
+    }).then((t) => {
+      setTasks((prev) => [...prev, t]);
+      return t;
     });
-    fetchAll();
-  };
+  }, []);
 
-  const remove  = async id => {
-    await fetch(`${API}/${id}`, { method:'DELETE' });
-    fetchAll();
-  };
+  const update = useCallback((id, patch) => {
+    return apiFetch(`/api/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch)
+    }).then((t) => {
+      setTasks((prev) => prev.map(p => (p.id === t.id ? t : p)));
+      return t;
+    });
+  }, []);
 
-  return { tasks, create, update, remove, updateOrder };
+  const remove = useCallback((id) => {
+    return apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      .then(() => setTasks((prev) => prev.filter(p => p.id !== id)));
+  }, []);
+
+  return { tasks, create, update, remove };
 }
