@@ -129,8 +129,11 @@ function InnerApp() {
   const renderEventContent = arg => {
     const { id }   = arg.event;
     const done     = arg.event.extendedProps.done;
+    const api = calendarRef.current?.getApi();
+    const isMonthView = api?.view.type === 'dayGridMonth';
+    
     return (
-      <div className={`task-item${done ? ' done' : ''}`}>
+      <div className={`task-item${done ? ' done' : ''}${isMonthView ? ' month-view' : ''}`}>
         <input
           type="checkbox"
           checked={!!done}
@@ -139,7 +142,7 @@ function InnerApp() {
             update(id, { done: !done });
           }}
         />
-        <span> {arg.event.title} </span>
+        <span className={isMonthView ? 'task-title-truncate' : ''}> {arg.event.title} </span>
       </div>
     );
   };

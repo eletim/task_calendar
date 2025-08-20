@@ -117,6 +117,25 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* 月表示でのタスク名省略表示 */
+.fc-daygrid-event .task-item.month-view span,
+.fc-daygrid-event .task-item .task-title-truncate {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  display: inline-block !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+/* 月表示以外では通常の折り返し表示を維持 */
+.fc-daygrid-event .task-item:not(.month-view) span {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
 /* イベントリストを縦方向に整列 */
 .fc-daygrid-day-events {
   display: flex; flex-direction: column; gap: 2px;
