@@ -111,9 +111,10 @@ python3 -m flask --app 'backend.app:create_app' db migrate -m "init tables"
 python3 -m flask --app 'backend.app:create_app' db upgrade
 ```
 
+```sh
 flask db migrate -m "mutable json, indexes, unique constraints"
 flask db upgrade
-
+```
 
 # TODO
 
