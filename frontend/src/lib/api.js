@@ -49,11 +49,16 @@ export async function apiFetch(path, opts = {}) {
 
   const headers = new Headers(opts.headers || {});
 
-  // JSONボディならContent-Typeを付ける＆文字列化
+  // ボディがある場合は、文字列かどうかに関係なく Content-Type を補う
+  const hasBody = opts.body !== undefined && opts.body !== null;
   let body = opts.body;
-  if (body && typeof body !== 'string') {
-    headers.set('Content-Type', headers.get('Content-Type') || 'application/json');
-    body = JSON.stringify(body);
+  if (hasBody) {
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (typeof body !== 'string') {
+      body = JSON.stringify(body);
+    }
   }
 
   // 将来 JWT_COOKIE_CSRF_PROTECT=True にしたとき用（今OFFでも害なし）

@@ -14,7 +14,7 @@ export function useTasks() {
   const create = useCallback((title, date=null, color='#3788d8', category='normal') => {
     return apiFetch('/api/tasks/', {
       method: 'POST',
-      body: JSON.stringify({ title, date, color, category })
+      body: { title, date, color, category }
     }).then((t) => {
       setTasks((prev) => [...prev, t]);
       return t;
@@ -24,7 +24,7 @@ export function useTasks() {
   const update = useCallback((id, patch) => {
     return apiFetch(`/api/tasks/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify(patch)
+      body: patch
     }).then((t) => {
       setTasks((prev) => prev.map(p => (p.id === t.id ? t : p)));
       return t;
