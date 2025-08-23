@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import './index.css';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import { apiFetch } from './lib/api';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -17,15 +18,9 @@ import { HabitProvider, HabitCell, isHabitTarget } from './components/Habit';
 import { useTheme } from './contexts/ThemeContext';
 
 function RequireAuth({ children }) {
-  const { token } = useAuth();
-  if (!token) {
-    // 未ログインならログイン画面へ
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.location.replace('/login');
-    }
-    return null;
-  }
-  return children;
+  const { authenticated, loading } = useAuth();
+  if (loading) return null;                 // ← ここ重要：whoami 取得が終わるまで待つ
+  return authenticated ? children : <Navigate to="/login" replace />;
 }
 
 function InnerApp() {

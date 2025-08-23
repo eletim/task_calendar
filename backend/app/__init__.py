@@ -39,6 +39,21 @@ def create_app(config_name=None):
     # 設定読み込み
     app.config.from_object(config_map[cfg])
 
+    def env_bool(name, default=False):
+        return str(os.getenv(name, str(int(default)))).lower() in ("1","true","yes","on")
+
+    # 秘密鍵は環境変数があればそれを、なければ既存設定/フォールバック
+    app.config["SECRET_KEY"]       = os.getenv("SECRET_KEY", app.config.get("SECRET_KEY", "change-me"))
+    app.config["JWT_SECRET_KEY"]   = os.getenv("JWT_SECRET_KEY", app.config.get("JWT_SECRET_KEY", "change-me"))
+
+    # クッキー運用へ切り替え（デフォはheadersのことが多い）
+    app.config["JWT_TOKEN_LOCATION"]     = ["cookies"]
+    app.config["JWT_COOKIE_SECURE"]      = env_bool("JWT_COOKIE_SECURE", False)   # HTTPの間は False、HTTPS化したら True
+    app.config["JWT_COOKIE_SAMESITE"]    = os.getenv("JWT_COOKIE_SAMESITE", "Lax")# 跨ぐなら "None"（※HTTPS必須）
+    app.config["JWT_COOKIE_CSRF_PROTECT"]= env_bool("JWT_COOKIE_CSRF_PROTECT", False)  # 切り分け中 False。本番は True 推奨
+    if os.getenv("JWT_COOKIE_DOMAIN"):
+        app.config["JWT_COOKIE_DOMAIN"]  = os.getenv("JWT_COOKIE_DOMAIN")
+
     # 拡張初期化
     db.init_app(app)
     migrate.init_app(app, db)

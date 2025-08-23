@@ -1,6 +1,9 @@
-# app/routes/auth.py
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from flask_jwt_extended import (
+    jwt_required, get_jwt_identity,
+    create_access_token, create_refresh_token,
+    set_access_cookies, set_refresh_cookies, unset_jwt_cookies
+)
 from ..extensions import db
 from ..models import User
 
@@ -29,11 +32,33 @@ def login():
     u = User.query.filter_by(email=email).first()
     if not u or not u.check_password(password):
         return jsonify({'error': 'invalid credentials'}), 401
-    token = create_access_token(identity=u.id)
-    return jsonify({'access_token': token})
+
+    access_token = create_access_token(identity=u.id)
+    refresh_token = create_refresh_token(identity=u.id)
+
+    resp = jsonify({'message': 'logged_in'})
+    set_access_cookies(resp, access_token)
+    set_refresh_cookies(resp, refresh_token)
+    return resp, 200
 
 @auth_bp.post('/refresh')
 @jwt_required(refresh=True)
 def refresh_token():
     uid = get_jwt_identity()
-    return jsonify(access_token=create_access_token(identity=uid))
+    new_access = create_access_token(identity=uid)
+    resp = jsonify({'message': 'refreshed'})
+    set_access_cookies(resp, new_access)
+    return resp, 200
+
+@auth_bp.post('/logout')
+def logout():
+    resp = jsonify({'message': 'logged_out'})
+    unset_jwt_cookies(resp)
+    return resp, 200
+
+@auth_bp.get('/whoami')
+@jwt_required()
+def whoami():
+    uid = get_jwt_identity()
+    u = User.query.get(uid)
+    return jsonify({"id": u.id, "email": u.email})
