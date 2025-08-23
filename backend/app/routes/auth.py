@@ -33,8 +33,8 @@ def login():
     if not u or not u.check_password(password):
         return jsonify({'error': 'invalid credentials'}), 401
 
-    access_token = create_access_token(identity=u.id)
-    refresh_token = create_refresh_token(identity=u.id)
+    access_token  = create_access_token(identity=str(u.id))
+    refresh_token = create_refresh_token(identity=str(u.id))
 
     resp = jsonify({'message': 'logged_in'})
     set_access_cookies(resp, access_token)
