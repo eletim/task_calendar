@@ -1,4 +1,44 @@
 
+# setup
+
+### npm
+
+```sh
+sudo apt update
+sudo apt install npm
+cd frontend
+npm install
+```
+
+### flask
+
+```sh
+sudo apt update
+sudo apt install -y python3.12-venv
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install flask gunicorn SQLAlchemy flask_sqlalchemy flask-migrate flask-bcrypt flask-jwt-extended
+```
+
+### nginx
+
+```sh
+sudo apt update
+sudo apt install -y nginx
+sudo systemctl enable --now nginx
+```
+
+```bash
+infra/setup_nginx.sh your-domain.com
+```
+
+### sqlite3
+
+```sh
+sudo apt update
+sudo apt install -y sqlite3
+```
 
 # build
 
@@ -11,6 +51,8 @@ npm run build
 
 ```sh
 cd backend
+export DATABASE_URL=sqlite:////home/ubuntu/task_calendar/instance/app.db
+# export FLASK_APP=backend.wsgi:application
 ```
 
 then, 
@@ -58,8 +100,10 @@ dig +short AAAA <your_domain_name>  # output: <your ipv6>
 
 ## server
 
+ipv4とipv6両方
 ```sh
-sudo ufw allow proto tcp to any port 80,443 from ::/0
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 ```
 
 ### debug port
@@ -89,18 +133,6 @@ task\_calendar/
 └── README.md
 ```
 
-### Nginx 設定のデプロイ
-
-```bash
-# infra/setup_nginx.sh に実行権限を付与
-chmod +x infra/setup_nginx.sh
-
-# ドメイン名を指定して実行
-# → /etc/nginx/sites-available/your-domain.conf を生成し、
-#    sites-enabled にシンボリックリンクを作成、
-#    nginx -t → systemctl reload nginx を自動実行します
-infra/setup_nginx.sh your-domain.com
-```
 
 # migration
 
