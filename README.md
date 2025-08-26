@@ -29,6 +29,11 @@ sudo apt install -y nginx
 sudo systemctl enable --now nginx
 ```
 
+```sh
+sudo apt update
+sudo apt install -y snapd
+```
+
 ```bash
 infra/setup_nginx.sh your-domain.com
 ```
