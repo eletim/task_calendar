@@ -2,6 +2,7 @@
 import os
 import sqlite3
 from flask import Flask, send_from_directory, jsonify
+from flask_cors import CORS
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -101,5 +102,19 @@ def create_app(config_name=None):
     app.register_blueprint(tasks_bp)
     app.register_blueprint(routines_bp)
     app.register_blueprint(settings_bp)
+
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": [
+                "https://eletim.jp",        # 本番Web
+                "capacitor://localhost",    # Capacitor 同梱
+                "http://localhost",         # ローカル開発（必要なら）
+                "http://127.0.0.1"          # ローカル開発（必要なら）
+            ],
+            "supports_credentials": True,   # Cookie を送受信できるように
+            "methods": ["GET","POST","PATCH","DELETE","OPTIONS"],
+            "allow_headers": ["Content-Type","X-CSRF-TOKEN","Authorization"]
+        }
+    })
 
     return app

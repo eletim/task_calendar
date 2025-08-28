@@ -19,6 +19,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install flask gunicorn SQLAlchemy flask_sqlalchemy flask-migrate flask-bcrypt flask-jwt-extended
+pip install flask-cors python-dotenv
 ```
 
 ### nginx
