@@ -57,8 +57,10 @@ npm run build
 
 ```sh
 cd backend
-export DATABASE_URL=sqlite:////home/ubuntu/task_calendar/instance/app.db
-# export FLASK_APP=backend.wsgi:application
+# .env の内容を環境変数に取り込む
+set -a             # 以降の変数定義を自動で export
+source .env
+set +a             # export 自動化を終了
 ```
 
 then, 

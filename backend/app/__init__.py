@@ -17,6 +17,8 @@ from .routes.settings import settings_bp
 # 認証 API
 from .routes.auth import auth_bp
 
+from dotenv import load_dotenv
+load_dotenv()  # .env を自動で読み込み
 
 # --- SQLite の外部キーを有効化（Postgres 等では影響なし） ---
 @event.listens_for(Engine, "connect")

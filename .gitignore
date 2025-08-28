@@ -32,3 +32,5 @@ data/*
 # ---- Flask instance（実データ/秘密） ----
 instance/*
 !instance/.gitkeep
+
+.env
