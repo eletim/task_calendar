@@ -7,9 +7,22 @@ export function useTasks() {
 
   useEffect(() => {
     apiFetch('/api/tasks/')
-      .then(setTasks)
-      .catch((e) => console.error('tasks load failed', e));
-  }, []);
+      .then((data) => {
+        // API が配列返す前提だが、保険で丸める
+        if (Array.isArray(data)) {
+          setTasks(data);
+        } else if (Array.isArray(data?.items)) {
+          setTasks(data.items);
+        } else {
+          console.error('unexpected tasks response', data);
+          setTasks([]); // 安全のため空配列に
+        }
+      })
+      .catch((e) => {
+        console.error('tasks load failed', e);
+        setTasks([]); // エラー時も配列で維持
+      });
+  }, []); 
 
   const create = useCallback((title, date=null, color='#3788d8', category='normal') => {
     return apiFetch('/api/tasks/', {

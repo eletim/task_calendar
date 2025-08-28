@@ -26,6 +26,7 @@ function RequireAuth({ children }) {
 function InnerApp() {
   // useTasks フックで tasks と CRUD 関数を取得
   const { tasks, create, update, remove } = useTasks();
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const calendarRef                      = useRef(null);
@@ -59,7 +60,7 @@ function InnerApp() {
   };
 
   // FullCalendar 用に tasks を変換
-  const events = tasks.map(t => ({
+  const events = safeTasks.map(t => ({
     id:      t.id,
     title:   t.title,
     start:   t.date,
