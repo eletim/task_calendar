@@ -26,7 +26,7 @@ server {
         # WebSocket使う場合の定型
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Connection "upgrade";
 
         # （任意）アプリにプレフィックスを伝えたい場合
         # proxy_set_header X-Forwarded-Prefix /calendar;

@@ -5,6 +5,7 @@ from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import config_map
 from .extensions import db, migrate, bcrypt, jwt
@@ -39,6 +40,8 @@ def create_app(config_name=None):
         static_url_path='/static'
     )
 
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
     # 設定読み込み
     app.config.from_object(config_map[cfg])
 
@@ -52,10 +55,16 @@ def create_app(config_name=None):
     # クッキー運用へ切り替え（デフォはheadersのことが多い）
     app.config["JWT_TOKEN_LOCATION"]     = ["cookies"]
     app.config["JWT_COOKIE_SECURE"]      = env_bool("JWT_COOKIE_SECURE", False)   # HTTPの間は False、HTTPS化したら True
-    app.config["JWT_COOKIE_SAMESITE"]    = os.getenv("JWT_COOKIE_SAMESITE", "Lax")# 跨ぐなら "None"（※HTTPS必須）
+    app.config["JWT_COOKIE_SAMESITE"]    = os.getenv("JWT_COOKIE_SAMESITE", "None")
     app.config["JWT_COOKIE_CSRF_PROTECT"]= env_bool("JWT_COOKIE_CSRF_PROTECT", False)  # 切り分け中 False。本番は True 推奨
     if os.getenv("JWT_COOKIE_DOMAIN"):
         app.config["JWT_COOKIE_DOMAIN"]  = os.getenv("JWT_COOKIE_DOMAIN")
+
+    # ▼ サブパス配備（/calendar）にクッキーを効かせるための Path 設定
+    app.config["JWT_ACCESS_COOKIE_PATH"]  = os.getenv("JWT_ACCESS_COOKIE_PATH", "/calendar")
+    # refresh のエンドポイントが /api/auth/refresh なら、ブラウザ側の呼び出しは /calendar/api/auth/refresh
+    # → Path は /calendar/auth にしておくと無駄が少ない（/calendar でも可）
+    app.config["JWT_REFRESH_COOKIE_PATH"] = os.getenv("JWT_REFRESH_COOKIE_PATH", "/calendar/api/auth")
 
     # 拡張初期化
     db.init_app(app)
