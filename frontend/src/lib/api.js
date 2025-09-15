@@ -5,7 +5,9 @@ const IS_CAPACITOR = typeof window !== 'undefined' &&
   (window.Capacitor || window.location.protocol === 'capacitor:');
 // 環境変数があれば最優先（例：VITE_API_BASE=https://eletim.jp/api）
 const ENV_API_BASE = (import.meta?.env && import.meta.env.VITE_API_BASE) || '';
-const AUTO_API_BASE = IS_CAPACITOR ? 'https://eletim.jp/api' : '/api';
+const AUTO_API_BASE = IS_CAPACITOR
+  ? 'https://eletim.jp/api'
+  : (window.location.pathname.startsWith('/calendar') ? '/calendar/api' : '/api');
 const API_BASE = ENV_API_BASE || AUTO_API_BASE;
 
 function getCookie(name) {
@@ -14,8 +16,10 @@ function getCookie(name) {
 }
 
 function redirectToLogin() {
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login';
+  const prefix = window.location.pathname.startsWith('/calendar') ? '/calendar' : '';
+  const loginPath = `${prefix}/login`;
+  if (window.location.pathname !== loginPath) {
+    window.location.href = loginPath;
   }
 }
 
@@ -86,12 +90,9 @@ export async function apiFetch(path, opts = {}) {
   const csrf = getCookie('csrf_access_token'); // flask-jwt-extended のデフォ名
   if (needsCsrf && csrf) headers.set('X-CSRF-TOKEN', csrf);
 
-  // API_BASE が同一オリジンか判定して credentials を切替
-  const apiOrigin = new URL(API_BASE, window.location.origin).origin;
-  const isSameOrigin = apiOrigin === window.location.origin;
   const init = {
     method,
-    credentials: isSameOrigin ? 'same-origin' : 'include',
+    credentials: 'include',  // ← 常に include に固定（Capacitor対応）
     ...opts,
     headers,
     body,
