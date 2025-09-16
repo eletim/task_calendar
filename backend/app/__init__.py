@@ -2,6 +2,7 @@
 import os
 import sqlite3
 from flask import Flask, send_from_directory, jsonify
+from flask import request
 from flask_cors import CORS
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
@@ -113,6 +114,10 @@ def create_app(config_name=None):
     app.register_blueprint(tasks_bp)
     app.register_blueprint(routines_bp)
     app.register_blueprint(settings_bp)
+
+    @app.get("/echo-path")
+    def echo_path():
+        return {"path": request.path}, 200
 
     CORS(app, resources={
         r"/api/*": {
