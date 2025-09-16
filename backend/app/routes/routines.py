@@ -97,7 +97,7 @@ def put_flags():
  
     rec = Routine.query.filter_by(user_id=user.id, date=date).first()
     if not rec:
-        rec = Routine(user_id=user.id, date=date, flags=make_bools(max_flags_len), value=0)
+        rec = Routine(user_id=user.id, date=date, flags=make_bools(f_len), value=0)
         db.session.add(rec)
         try:
             db.session.commit()
