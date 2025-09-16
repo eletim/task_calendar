@@ -2,8 +2,11 @@
 import os
 import sqlite3
 from flask import Flask, send_from_directory, jsonify
+from flask import request
+from flask_cors import CORS
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import config_map
 from .extensions import db, migrate, bcrypt, jwt
@@ -16,6 +19,8 @@ from .routes.settings import settings_bp
 # 認証 API
 from .routes.auth import auth_bp
 
+from dotenv import load_dotenv
+load_dotenv()  # .env を自動で読み込み
 
 # --- SQLite の外部キーを有効化（Postgres 等では影響なし） ---
 @event.listens_for(Engine, "connect")
@@ -36,6 +41,8 @@ def create_app(config_name=None):
         static_url_path='/static'
     )
 
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
     # 設定読み込み
     app.config.from_object(config_map[cfg])
 
@@ -49,10 +56,16 @@ def create_app(config_name=None):
     # クッキー運用へ切り替え（デフォはheadersのことが多い）
     app.config["JWT_TOKEN_LOCATION"]     = ["cookies"]
     app.config["JWT_COOKIE_SECURE"]      = env_bool("JWT_COOKIE_SECURE", False)   # HTTPの間は False、HTTPS化したら True
-    app.config["JWT_COOKIE_SAMESITE"]    = os.getenv("JWT_COOKIE_SAMESITE", "Lax")# 跨ぐなら "None"（※HTTPS必須）
+    app.config["JWT_COOKIE_SAMESITE"]    = os.getenv("JWT_COOKIE_SAMESITE", "None")
     app.config["JWT_COOKIE_CSRF_PROTECT"]= env_bool("JWT_COOKIE_CSRF_PROTECT", False)  # 切り分け中 False。本番は True 推奨
     if os.getenv("JWT_COOKIE_DOMAIN"):
         app.config["JWT_COOKIE_DOMAIN"]  = os.getenv("JWT_COOKIE_DOMAIN")
+
+    # ▼ サブパス配備（/calendar）にクッキーを効かせるための Path 設定
+    app.config["JWT_ACCESS_COOKIE_PATH"]  = os.getenv("JWT_ACCESS_COOKIE_PATH", "/calendar")
+    # refresh のエンドポイントが /api/auth/refresh なら、ブラウザ側の呼び出しは /calendar/api/auth/refresh
+    # → Path は /calendar/auth にしておくと無駄が少ない（/calendar でも可）
+    app.config["JWT_REFRESH_COOKIE_PATH"] = os.getenv("JWT_REFRESH_COOKIE_PATH", "/calendar/api/auth")
 
     # 拡張初期化
     db.init_app(app)
@@ -101,5 +114,23 @@ def create_app(config_name=None):
     app.register_blueprint(tasks_bp)
     app.register_blueprint(routines_bp)
     app.register_blueprint(settings_bp)
+
+    @app.get("/echo-path")
+    def echo_path():
+        return {"path": request.path}, 200
+
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": [
+                "https://eletim.jp",        # 本番Web
+                "capacitor://localhost",    # Capacitor 同梱
+                "http://localhost",         # ローカル開発（必要なら）
+                "http://127.0.0.1"          # ローカル開発（必要なら）
+            ],
+            "supports_credentials": True,   # Cookie を送受信できるように
+            "methods": ["GET","POST","PATCH","DELETE","OPTIONS"],
+            "allow_headers": ["Content-Type","X-CSRF-TOKEN","Authorization"]
+        }
+    })
 
     return app
